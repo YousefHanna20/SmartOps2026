@@ -10,7 +10,7 @@ import Tasks from "../pages/tasks";
 import ProjectRequest from "../pages/project-request";
 import ProjectTemplates from "../pages/project-templates";
 import Notifications from "../pages/notifications";
-
+import Verifyotp from "../pages/verify-otp";
 
 function AppRoutes() {
   return (
@@ -26,6 +26,7 @@ function AppRoutes() {
         <Route path="/requests" element={<ProjectRequest />} />
         <Route path="/templates" element={<ProjectTemplates />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/otp" element={<Verifyotp />} />
       </Routes>
     </BrowserRouter>
   );

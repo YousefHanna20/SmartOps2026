@@ -8,7 +8,7 @@ function LandingFooter() {
           </span>
 
           <p className="text-slate-400 text-sm max-w-xs text-center md:text-left">
-            © 2024 SmartOps Architectural Systems. Built for high-performance
+            © 2026 SmartOps Architectural Systems. Built for high-performance
             teams.
           </p>
         </div>
