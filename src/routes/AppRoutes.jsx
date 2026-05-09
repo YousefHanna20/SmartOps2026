@@ -10,12 +10,10 @@ import Tasks from "../pages/tasks";
 import ProjectRequest from "../pages/project-request";
 import ProjectTemplates from "../pages/project-templates";
 import Notifications from "../pages/notifications";
-<<<<<<< HEAD
+
 import ForgotPassword from "../pages/forgot-password";
 import ResetPassword from "../pages/reset-password";
-=======
 import Verifyotp from "../pages/verify-otp";
->>>>>>> origin/main
 
 function AppRoutes() {
   return (
@@ -31,12 +29,13 @@ function AppRoutes() {
         <Route path="/requests" element={<ProjectRequest />} />
         <Route path="/templates" element={<ProjectTemplates />} />
         <Route path="/notifications" element={<Notifications />} />
-<<<<<<< HEAD
+
+        {/* Your pages */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-=======
+
+        {/* Partner page */}
         <Route path="/otp" element={<Verifyotp />} />
->>>>>>> origin/main
       </Routes>
     </BrowserRouter>
   );
