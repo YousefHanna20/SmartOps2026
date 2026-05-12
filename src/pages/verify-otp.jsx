@@ -1,5 +1,5 @@
-import VerifyOtpCard from "../components/auth/verifyotp-card";
-import VerifyOtpFooter from "../components/auth/verifyotp-footer";
+import VerifyOtpCard from "../components/auth/otp/verifyotp-card";
+import VerifyOtpFooter from "../components/auth/otp/verifyotp-footer";
 
 function VerifyOtp() {
   return (

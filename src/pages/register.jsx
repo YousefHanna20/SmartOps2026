@@ -1,6 +1,6 @@
-import RegisterHero from "../components/register/register-hero";
-import RegisterForm from "../components/register/register-form";
-import RegisterFooter from "../components/register/register-footer.jsx";
+import RegisterHero from "../components/auth/register/register-hero";
+import RegisterForm from "../components/auth/register/register-form";
+import RegisterFooter from "../components/auth//register/register-footer.jsx";
 
 function Register() {
   return (

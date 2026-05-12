@@ -1,4 +1,4 @@
-import ForgotPasswordForm from "../components/auth/forgot-password-form";
+import ForgotPasswordForm from "../components/auth/forget-pass/forgot-password-form";
 import AuthLogo from "../components/auth/auth-logo";
 import AuthPageFooter from "../components/auth/auth-page-footer";
 
