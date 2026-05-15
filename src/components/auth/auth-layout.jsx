@@ -4,7 +4,7 @@ function AuthLayout({ children, showBrandPanel = false }) {
       <div className="w-full max-w-[920px] min-h-[620px] bg-white rounded-2xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-[1.15fr_1fr]">
 
         {showBrandPanel && (
-          <div className="hidden md:flex flex-col justify-between bg-[#0b2a4a] text-white px-12 py-25">
+          <div className="hidden md:flex flex-col justify-center bg-[#0b2a4a] text-white px-12 py-25">
             <div>
               <p className="text-xs tracking-[0.35em] uppercase text-blue-200">
                 Architectural Integrity

@@ -1,5 +1,12 @@
-function ProjectRequests(){
-    return <h1 className="font-medium text-blue-600 ">Project Requests Page</h1>
+import AppShell from "../components/layout/app-shell";
+import ProjectRequestContent from "../components/project-request/project-request-content";
+
+function ProjectRequest() {
+  return (
+    <AppShell activePage="Requests">
+      <ProjectRequestContent />
+    </AppShell>
+  );
 }
 
-export default ProjectRequests;
+export default ProjectRequest;

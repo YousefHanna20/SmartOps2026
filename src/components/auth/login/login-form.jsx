@@ -4,8 +4,8 @@ import { Link } from "react-router-dom";
 function LoginForm() {
   return (
     <div className="w-full max-w-sm">
-      <h2 className="text-2xl font-bold text-slate-900">Welcome Back</h2>
-      <p className="text-sm text-slate-500 mt-1">
+      <h2 className="text-2xl font-bold text-slate-900 text-center">Welcome Back</h2>
+      <p className="text-sm text-slate-500 mt-1 text-center">
         Access your architectural dashboard.
       </p>
 
