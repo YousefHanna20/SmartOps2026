@@ -39,7 +39,7 @@ function AuthLayout({ children, showBrandPanel = false }) {
               </div>
 
               <p className="text-xs text-blue-200">
-                © 2024 SmartOps Architectural Systems
+                © 2026 SmartOps Architectural Systems
               </p>
             </div>
           </div>
