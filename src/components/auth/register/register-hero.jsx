@@ -53,28 +53,9 @@ function RegisterHero() {
       </div>
 
       <div className="z-10 flex flex-col gap-6">
-        <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10">
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20">
-            <img
-              className="w-full h-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCK0vruR4AC4yKdcUnsdfcxItLZqrbd1xNDFMKXfcXjrNyR3mMR_ECXGjW-qtqiflndqS3TQZq3P8kCncJicNJttctafWVS_YiK4gZNbUfazUgai1bQj-rsd8CwNci7qvr1WSAvy8e9Jof61mqwVavlBRq9YoVAmumERvQu_KOoZk9CDiBDMFxBEm9X-vM4E7imE2qBDpqubkcgAIn8uabMEg5cg87ZxaYAq4qxVbVFYsmyzyVrIW2GVfQSkNFRh5X5568_XKjkNgE"
-              alt="Architect"
-            />
-          </div>
-
-          <div>
-            <p className="text-white font-semibold text-sm italic">
-              "The editorial clarity of SmartOps transformed our workflow in
-              weeks."
-            </p>
-            <p className="text-primary-fixed text-xs uppercase tracking-widest mt-1">
-              — Lead Architect, Studio Prism
-            </p>
-          </div>
-        </div>
-
+      
         <p className="text-primary-fixed-dim text-[11px] uppercase tracking-[0.2em]">
-          © 2024 SmartOps Architectural Systems
+          © 2026 SmartOps Architectural Systems
         </p>
       </div>
     </div>

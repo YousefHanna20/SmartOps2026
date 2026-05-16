@@ -89,7 +89,7 @@ function AppShell({ children, activePage }) {
         <footer className="px-6 lg:px-10 py-8 text-xs text-slate-400 flex flex-col md:flex-row justify-between gap-4">
           <p>
             <span className="font-bold text-[#0b2a4a]">SmartOps</span> <br />
-            © 2024 SmartOps Architectural Systems
+            © 2026 SmartOps Architectural Systems
           </p>
 
           <div className="flex gap-6">

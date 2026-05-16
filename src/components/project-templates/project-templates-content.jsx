@@ -59,7 +59,7 @@ function ProjectTemplatesContent() {
 
       <section className="bg-white rounded-2xl shadow-sm border border-slate-100 mt-8 overflow-hidden">
         <div className="flex justify-between items-center px-6 py-5 border-b">
-          <h3 className="font-black text-[#0b2a4a]">Template Registry</h3>
+          <h3 className="font-black text-[#0b2a4a]">Projects Template </h3>
           <div className="flex gap-3 text-slate-400">
             <span className="material-symbols-outlined">filter_list</span>
             <span className="material-symbols-outlined">sort</span>
