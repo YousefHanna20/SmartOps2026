@@ -1,4 +1,8 @@
+
+import { useNavigate } from "react-router-dom";
 function RegisterForm() {
+
+  const navigate = useNavigate();
   return (
     <div className="w-full md:w-7/12 flex items-center justify-center p-8 md:p-16 lg:p-24 bg-surface">
       <div className="w-full max-w-md">
@@ -110,7 +114,7 @@ function RegisterForm() {
 
           <p className="text-center text-sm text-on-surface-variant pt-4">
             Already part of SmartOps?{" "}
-            <a className="text-primary font-bold hover:underline" href="#">
+            <a onClick={() => navigate("/login")} className="text-primary font-bold hover:underline" href="#">
               Sign In
             </a>
           </p>
