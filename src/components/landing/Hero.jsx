@@ -1,4 +1,8 @@
+import { useNavigate } from "react-router-dom";
+
 function Hero() {
+
+   const navigate = useNavigate();
   return (
     <section className="max-w-7xl mx-auto px-8 mb-24">
       <div className="flex flex-col lg:flex-row gap-16 items-center pt-16">
@@ -27,14 +31,14 @@ function Hero() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
-            <button className="px-8 py-4 bg-primary text-on-primary rounded-md font-bold tracking-tight shadow-lg shadow-primary/20 hover:scale-[0.98] transition-all flex items-center justify-center">
+            <button onClick={() => navigate("/login")}  className="px-8 py-4 bg-primary text-on-primary rounded-md font-bold tracking-tight shadow-lg shadow-primary/20 hover:scale-[0.98] transition-all flex items-center justify-center">
               Start Free Trial
               <span className="material-symbols-outlined ml-2">
                 arrow_forward
               </span>
             </button>
 
-            <button className="px-8 py-4 bg-secondary-container text-on-secondary-container rounded-md font-bold tracking-tight hover:bg-slate-200 transition-colors flex items-center justify-center">
+            <button  className="px-8 py-4 bg-secondary-container text-on-secondary-container rounded-md font-bold tracking-tight hover:bg-slate-200 transition-colors flex items-center justify-center">
               Request Demo
             </button>
           </div>

@@ -20,7 +20,7 @@ function ForgotPasswordForm() {
     console.log("Sending OTP to:", email);
 
     // navigate to reset password page
-    navigate("/reset-password");
+    navigate("/otp");
   };
 
   return (

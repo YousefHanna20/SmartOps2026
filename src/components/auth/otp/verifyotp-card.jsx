@@ -1,4 +1,8 @@
+import { useNavigate } from "react-router-dom";
+
 function VerifyOtpCard() {
+
+  const navigate = useNavigate();
   return (
     <div className="w-full max-w-[480px]">
       <div className="bg-surface-container-lowest rounded-md shadow-[0_8px_32px_rgba(25,28,30,0.04)] overflow-hidden">
@@ -42,7 +46,7 @@ function VerifyOtpCard() {
             </div>
 
             <div className="space-y-6">
-              <button
+              <button onClick={() => navigate("/reset-password")} 
                 className="w-full h-12 bg-gradient-to-br from-primary to-primary-container text-on-primary font-semibold rounded-md shadow-lg shadow-primary/10 hover:opacity-90 active:scale-[0.98] transition-all duration-200"
                 type="submit"
               >
@@ -59,7 +63,7 @@ function VerifyOtpCard() {
 
                 <div className="w-12 h-[2px] bg-surface-container-highest rounded-full" />
 
-                <button
+                <button  onClick={() => navigate("/login")} 
                   className="flex items-center gap-2 text-xs font-bold text-on-surface-variant uppercase tracking-widest hover:text-primary transition-colors"
                   type="button"
                 >
