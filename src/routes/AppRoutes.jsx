@@ -14,6 +14,7 @@ import Notifications from "../pages/notifications";
 import ForgotPassword from "../pages/forgot-password";
 import ResetPassword from "../pages/reset-password";
 import Verifyotp from "../pages/verify-otp";
+import ExportReport from "../pages/export-report";
 
 function AppRoutes() {
   return (
@@ -33,6 +34,7 @@ function AppRoutes() {
         {/* Your pages */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/tasks/export-report" element={<ExportReport />} />
 
         {/* Partner page */}
         <Route path="/otp" element={<Verifyotp />} />

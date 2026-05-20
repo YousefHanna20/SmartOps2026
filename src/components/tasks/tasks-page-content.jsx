@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function TasksPageContent() {
+  
   // Change this later from AuthContext/backend
   const user = {
     role: "employee", // "admin" or "employee"
@@ -81,8 +83,9 @@ function TasksPageContent() {
         task.id === taskId ? { ...task, status: newStatus } : task
       )
     );
+    
   };
-
+   const navigate = useNavigate();
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-6">
       <section className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
@@ -105,7 +108,7 @@ function TasksPageContent() {
             </button>
           
 
-          <button className="bg-slate-200 text-slate-600 px-6 py-3 rounded-lg text-sm font-bold">
+          <button onClick={() => navigate("/tasks/export-report")} className=" hover:opacity-80 transition bg-slate-200 text-slate-600 px-6 py-3 rounded-lg text-sm font-bold hover:navy-blue transition">
             Export Report
           </button>
         </div>
