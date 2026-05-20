@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function TasksPageContent() {
   // Change this later from AuthContext/backend
@@ -13,6 +14,7 @@ function TasksPageContent() {
     "Medium",
     "Low",
   ]);
+  const navigate = useNavigate();
 
   const [tasks, setTasks] = useState([
     {
@@ -100,7 +102,7 @@ function TasksPageContent() {
 
         <div className="flex gap-4 mt-6">
           
-            <button className="bg-[#082b4f] text-white px-6 py-3 rounded-lg text-sm font-bold shadow">
+            <button onClick={() => navigate("/tasks/assign")} className=" hover:opacity-90 transition bg-[#082b4f] text-white px-6 py-3 rounded-lg text-sm font-bold shadow">
               Assign Task
             </button>
           

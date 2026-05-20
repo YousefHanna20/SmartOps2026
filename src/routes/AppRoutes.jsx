@@ -14,6 +14,7 @@ import Notifications from "../pages/notifications";
 import ForgotPassword from "../pages/forgot-password";
 import ResetPassword from "../pages/reset-password";
 import Verifyotp from "../pages/verify-otp";
+import AssignTask from "../pages/assign-task";
 
 function AppRoutes() {
   return (
@@ -36,6 +37,7 @@ function AppRoutes() {
 
         {/* Partner page */}
         <Route path="/otp" element={<Verifyotp />} />
+        <Route path="/tasks/assign" element={<AssignTask />} />
       </Routes>
     </BrowserRouter>
   );
