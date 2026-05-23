@@ -15,6 +15,7 @@ function TasksPageContent() {
     "Medium",
     "Low",
   ]);
+  const navigate = useNavigate();
 
   const [tasks, setTasks] = useState([
     {
@@ -85,7 +86,6 @@ function TasksPageContent() {
     );
     
   };
-   const navigate = useNavigate();
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-6">
       <section className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
@@ -103,7 +103,7 @@ function TasksPageContent() {
 
         <div className="flex gap-4 mt-6">
           
-            <button className="bg-[#082b4f] text-white px-6 py-3 rounded-lg text-sm font-bold shadow">
+            <button onClick={() => navigate("/tasks/assign")} className=" hover:opacity-90 transition bg-[#082b4f] text-white px-6 py-3 rounded-lg text-sm font-bold shadow">
               Assign Task
             </button>
           
