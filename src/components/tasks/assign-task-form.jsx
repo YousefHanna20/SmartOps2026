@@ -109,7 +109,7 @@ function AssignTaskForm() {
                      className="w-full bg-slate-100 rounded-xl px-4 py-3 outline-none border border-transparent focus:border-[#082b4f]"
                   />
 
-                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                  <span className=" pointer-events-none material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
                       calendar_month
                   </span>
                 </div>
