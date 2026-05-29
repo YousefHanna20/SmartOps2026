@@ -1,8 +1,11 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import compassLogo from "../../assets/compass-logo.svg";
+import { useAuth } from "../../context/auth-context";
 
 function AppShell({ children, activePage }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const links = [
     { label: "Dashboard", path: "/dashboard", icon: "dashboard" },
@@ -13,26 +16,33 @@ function AppShell({ children, activePage }) {
     { label: "Notifications", path: "/notifications", icon: "notifications" },
   ];
 
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex">
       <aside className="w-64 bg-white border-r border-slate-100 px-6 py-6 hidden lg:flex flex-col">
         <div className="mb-10 flex items-center gap-3">
-           <img
-             src={compassLogo}
-             alt="SmartOps Logo"
-             className="w-10 h-10 object-contain"
-           />
+          <img
+            src={compassLogo}
+            alt="SmartOps Logo"
+            className="w-10 h-10 object-contain"
+          />
 
-           <div className="flex flex-col leading-none">
-              <h1 className="text-xl font-black text-[#0b2a9a]">
-                SmartOps
-              </h1>
+          <div className="flex flex-col leading-none">
+            <h1 className="text-xl font-black text-[#0b2a9a]">
+              SmartOps
+            </h1>
 
-              <p className="text-[11px] tracking-[0.25em] text-slate-400 uppercase mt-1">
-                Management AI
-              </p>
-           </div>
+            <p className="text-[11px] tracking-[0.25em] text-slate-400 uppercase mt-1">
+              Management AI
+            </p>
           </div>
+        </div>
 
         <nav className="flex flex-col gap-2">
           {links.map((item) => {
@@ -61,6 +71,14 @@ function AppShell({ children, activePage }) {
         <button className="mt-auto bg-[#082b4f] text-white rounded-xl px-5 py-3 text-sm font-bold shadow-lg shadow-blue-900/20">
           + New Project
         </button>
+
+        <button
+          onClick={handleLogout}
+          className="mt-3 border border-red-100 text-red-600 bg-red-50 rounded-xl px-5 py-3 text-sm font-bold hover:bg-red-100 transition"
+          type="button"
+        >
+          Logout
+        </button>
       </aside>
 
       <div className="flex-1 min-w-0">
@@ -78,9 +96,30 @@ function AppShell({ children, activePage }) {
           <div className="flex items-center gap-4 text-slate-500">
             <span className="material-symbols-outlined">notifications</span>
             <span className="material-symbols-outlined">settings</span>
-            <div className="w-9 h-9 rounded-full bg-[#0b2a4a] text-white flex items-center justify-center text-sm font-bold">
-              Y
+
+            <div className="hidden sm:flex flex-col text-right leading-tight">
+              <span className="text-xs font-bold text-slate-700">
+                {user?.name || "User"}
+              </span>
+              <span className="text-[10px] uppercase text-slate-400">
+                {user?.role || "member"}
+              </span>
             </div>
+
+            <div className="w-9 h-9 rounded-full bg-[#0b2a4a] text-white flex items-center justify-center text-sm font-bold">
+              {userInitial}
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="hidden sm:flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700"
+              type="button"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                logout
+              </span>
+              Logout
+            </button>
           </div>
         </header>
 

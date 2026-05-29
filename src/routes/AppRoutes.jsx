@@ -17,30 +17,101 @@ import Verifyotp from "../pages/verify-otp";
 import ExportReport from "../pages/export-report";
 
 import AssignTask from "../pages/assign-task";
+import ProtectedRoute from "./protected-route";
 
 function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public pages */}
         <Route path="/" element={<Landing />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/projects" element={<Projects />} />
-        <Route path="/projects/:id" element={<ProjectDetails />} />
-        <Route path="/tasks" element={<Tasks />} />
-        <Route path="/requests" element={<ProjectRequest />} />
-        <Route path="/templates" element={<ProjectTemplates />} />
-        <Route path="/notifications" element={<Notifications />} />
-
-        {/* Your pages */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/tasks/export-report" element={<ExportReport />} />
-
-        {/* Partner page */}
         <Route path="/otp" element={<Verifyotp />} />
-        <Route path="/tasks/assign" element={<AssignTask />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
+        {/* Protected pages */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/projects"
+          element={
+            <ProtectedRoute>
+              <Projects />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/projects/:id"
+          element={
+            <ProtectedRoute>
+              <ProjectDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute>
+              <Tasks />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/requests"
+          element={
+            <ProtectedRoute>
+              <ProjectRequest />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/templates"
+          element={
+            <ProtectedRoute>
+              <ProjectTemplates />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tasks/export-report"
+          element={
+            <ProtectedRoute>
+              <ExportReport />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tasks/assign"
+          element={
+            <ProtectedRoute>
+              <AssignTask />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

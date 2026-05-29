@@ -1,8 +1,59 @@
-
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-function RegisterForm() {
+import { registerUser } from "../../../services/user-service";
 
+function RegisterForm() {
   const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState([]);
+  const [success, setSuccess] = useState("");
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    setErrors([]);
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      const data = await registerUser(formData);
+
+      setSuccess(data.message || "Account created successfully");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1200);
+    } catch (error) {
+      const responseData = error.response?.data;
+
+      if (responseData?.errors) {
+        setErrors(responseData.errors.map((err) => err.message));
+      } else {
+        setErrors([
+          responseData?.message || "Register failed. Please try again.",
+        ]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full md:w-7/12 flex items-center justify-center p-8 md:p-16 lg:p-24 bg-surface">
       <div className="w-full max-w-md">
@@ -10,80 +61,83 @@ function RegisterForm() {
           <h2 className="text-4xl lg:text-5xl text-on-surface font-black tracking-tight mb-2">
             Create Account
           </h2>
+
           <p className="text-on-surface-variant">
             Join the architectural editorial ecosystem.
           </p>
         </div>
 
-        <form className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {errors.length > 0 && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+              <ul className="list-disc list-inside space-y-1">
+                {errors.map((errorMessage, index) => (
+                  <li key={index}>{errorMessage}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {success && (
+            <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+              {success}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-6">
             <FormInput
               label="Full Name"
               type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
               placeholder="Johnathan Sterling"
             />
 
             <FormInput
               label="Email Address"
               type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               placeholder="j.sterling@firm.com"
             />
 
             <FormInput
               label="Password"
               type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
               placeholder="••••••••••••"
             />
-
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant block">
-                Account Role
-              </label>
-
-              <div className="grid grid-cols-3 gap-3">
-                <RoleOption
-                  value="admin"
-                  icon="admin_panel_settings"
-                  label="Admin"
-                />
-
-                <RoleOption
-                  value="employee"
-                  icon="badge"
-                  label="Employee"
-                  defaultChecked
-                />
-
-                <RoleOption
-                  value="client"
-                  icon="person_pin_circle"
-                  label="Client"
-                />
-              </div>
-            </div>
           </div>
 
           <div className="pt-4">
             <button
-              className="w-full bg-primary text-on-primary font-bold py-4 rounded-lg shadow-lg shadow-primary/10 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+              className="w-full bg-primary text-on-primary font-bold py-4 rounded-lg shadow-lg shadow-primary/10 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed"
               type="submit"
+              disabled={loading}
             >
-              Initialize Account
+              {loading ? "Creating Account..." : "Initialize Account"}
+
               <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">
                 arrow_forward
               </span>
             </button>
           </div>
 
-          <div className="flex items-center gap-4 py-2">
+        {/*}  <div className="flex items-center gap-4 py-2">
             <div className="h-[1px] flex-grow bg-outline-variant/30" />
+
             <span className="text-[10px] font-bold uppercase tracking-widest text-outline">
               Social Registration
             </span>
-            <div className="h-[1px] flex-grow bg-outline-variant/30" />
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            <div className="h-[1px] flex-grow bg-outline-variant/30" />
+          </div> */}
+
+         {/* <div className="grid grid-cols-2 gap-4">
             <button
               className="flex items-center justify-center gap-2 py-3 rounded-lg bg-surface-container-low border border-outline-variant/15 hover:bg-surface-container-high transition-colors"
               type="button"
@@ -93,6 +147,7 @@ function RegisterForm() {
                 className="w-4 h-4"
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFB0ojiuNMuugT1AhpjMEOCFtWRmuSsBLLRCIo0XO1OMcrZNcBZ7dCEEbaTgXUJQohLzN_pSk3A8W6qzfj4rG7q2b2DxAHpx7NsnVwtlW_TKukbnPzFn0Txhg-rsH15Lx5x93C17Csuzl0QP4qp8lFdu_7GJqk46mAjaYpy7A5G9BvN2m5CPgWoDkCwD2egmbImZhsbpTyji39g1CT4nv9Ikq64mC-ZQKw19nOZYVnaYb23QKUVKhGR4TJprXFKkf9-J5fa9xS4tw"
               />
+
               <span className="text-[11px] font-bold uppercase tracking-widest text-on-surface">
                 Google
               </span>
@@ -110,13 +165,17 @@ function RegisterForm() {
                 Github
               </span>
             </button>
-          </div>
+          </div> */}
 
           <p className="text-center text-sm text-on-surface-variant pt-4">
             Already part of SmartOps?{" "}
-            <a onClick={() => navigate("/login")} className="text-primary font-bold hover:underline" href="#">
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="text-primary font-bold hover:underline"
+            >
               Sign In
-            </a>
+            </button>
           </p>
         </form>
       </div>
@@ -124,7 +183,7 @@ function RegisterForm() {
   );
 }
 
-function FormInput({ label, type, placeholder }) {
+function FormInput({ label, type, name, value, onChange, placeholder }) {
   return (
     <div className="space-y-2">
       <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant block">
@@ -135,34 +194,12 @@ function FormInput({ label, type, placeholder }) {
         className="w-full bg-surface-container-high border-none rounded-lg px-4 py-3.5 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all duration-300 text-on-surface placeholder:text-outline"
         placeholder={placeholder}
         type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        required
       />
     </div>
-  );
-}
-
-function RoleOption({ value, icon, label, defaultChecked = false }) {
-  return (
-    <label className="cursor-pointer group">
-      <input
-        className="peer hidden"
-        name="role"
-        type="radio"
-        value={value}
-        defaultChecked={defaultChecked}
-      />
-
-      <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-surface-container-high text-on-surface-variant border-2 border-transparent peer-checked:bg-primary-container peer-checked:text-on-primary-container peer-checked:border-primary/20 transition-all duration-300 group-hover:bg-surface-container-highest">
-        <span
-          className="material-symbols-outlined mb-2"
-          style={{ fontVariationSettings: "'FILL' 1" }}
-        >
-          {icon}
-        </span>
-        <span className="text-[10px] font-bold uppercase tracking-tighter">
-          {label}
-        </span>
-      </div>
-    </label>
   );
 }
 
