@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import compassLogo from "../../assets/compass-logo.svg";
+import { useAuth } from "../../context/auth-context";
 
 function AppShell({ children, activePage }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const links = [
     { label: "Dashboard", path: "/dashboard", icon: "dashboard" },
@@ -14,6 +17,13 @@ function AppShell({ children, activePage }) {
     { label: "Templates", path: "/templates", icon: "layers" },
     { label: "Notifications", path: "/notifications", icon: "notifications" },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
   const SidebarContent = () => (
     <>
@@ -25,8 +35,9 @@ function AppShell({ children, activePage }) {
         />
 
         <div className="flex flex-col leading-none">
-          <h1 className="text-2xl font-black text-[#0b2a4a]">SmartOps</h1>
-          <p className="text-[10px] tracking-[0.25em] text-slate-400 uppercase mt-1">
+          <h1 className="text-xl font-black text-[#0b2a9a]">SmartOps</h1>
+
+          <p className="text-[11px] tracking-[0.25em] text-slate-400 uppercase mt-1">
             Management AI
           </p>
         </div>
@@ -57,20 +68,22 @@ function AppShell({ children, activePage }) {
         })}
       </nav>
 
-      <button className="mt-auto bg-red-50 text-red-600 rounded-xl px-5 py-3 text-sm font-bold hover:bg-red-100 transition">
-        Log Out
+      <button
+        onClick={handleLogout}
+        className="mt-auto border border-red-100 text-red-600 bg-red-50 rounded-xl px-5 py-3 text-sm font-bold hover:bg-red-100 transition"
+        type="button"
+      >
+        Logout
       </button>
     </>
   );
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex">
-      {/* Desktop Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-100 px-6 py-6 hidden lg:flex flex-col">
         <SidebarContent />
       </aside>
 
-      {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -78,7 +91,6 @@ function AppShell({ children, activePage }) {
         />
       )}
 
-      {/* Mobile Sidebar Drawer */}
       <aside
         className={`fixed top-0 left-0 h-full w-72 bg-white z-50 px-6 py-6 flex flex-col transform transition-transform duration-300 lg:hidden ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -87,6 +99,7 @@ function AppShell({ children, activePage }) {
         <button
           onClick={() => setSidebarOpen(false)}
           className="absolute top-4 right-4 text-slate-500"
+          type="button"
         >
           ✕
         </button>
@@ -94,13 +107,12 @@ function AppShell({ children, activePage }) {
         <SidebarContent />
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 min-w-0">
         <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-4 lg:px-10">
-          {/* Mobile menu button */}
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#0b2a4a]"
+            type="button"
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
@@ -118,9 +130,30 @@ function AppShell({ children, activePage }) {
           <div className="flex items-center gap-4 text-slate-500 ml-auto">
             <span className="material-symbols-outlined">notifications</span>
             <span className="material-symbols-outlined">settings</span>
-            <div className="w-9 h-9 rounded-full bg-[#0b2a4a] text-white flex items-center justify-center text-sm font-bold">
-              Y
+
+            <div className="hidden sm:flex flex-col text-right leading-tight">
+              <span className="text-xs font-bold text-slate-700">
+                {user?.name || "User"}
+              </span>
+              <span className="text-[10px] uppercase text-slate-400">
+                {user?.role || "member"}
+              </span>
             </div>
+
+            <div className="w-9 h-9 rounded-full bg-[#0b2a4a] text-white flex items-center justify-center text-sm font-bold">
+              {userInitial}
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="hidden sm:flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700"
+              type="button"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                logout
+              </span>
+              Logout
+            </button>
           </div>
         </header>
 

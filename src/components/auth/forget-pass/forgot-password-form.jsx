@@ -1,26 +1,45 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { forgotPassword } from "../../../services/user-service";
 
 function ForgotPasswordForm() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState([]);
+  const [success, setSuccess] = useState("");
 
-  // ✅ this is the NEW function (add it)
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-    // simple validation (optional but good)
-    if (!email) {
-      alert("Please enter your email");
-      return;
+    setErrors([]);
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      const data = await forgotPassword(email);
+
+      setSuccess(data.message || "OTP sent to your email successfully");
+
+      localStorage.setItem("resetEmail", email);
+
+      setTimeout(() => {
+        navigate("/otp");
+      }, 1000);
+    } catch (error) {
+      const responseData = error.response?.data;
+
+      if (responseData?.errors) {
+        setErrors(responseData.errors.map((err) => err.message));
+      } else {
+        setErrors([
+          responseData?.message || "Failed to send OTP. Please try again.",
+        ]);
+      }
+    } finally {
+      setLoading(false);
     }
-
-    // simulate sending OTP
-    console.log("Sending OTP to:", email);
-
-    // navigate to reset password page
-    navigate("/otp");
   };
 
   return (
@@ -33,8 +52,23 @@ function ForgotPasswordForm() {
         Enter your email to receive a password reset code.
       </p>
 
-      {/* ✅ attach the function here */}
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        {errors.length > 0 && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+            <ul className="list-disc list-inside space-y-1">
+              {errors.map((errorMessage, index) => (
+                <li key={index}>{errorMessage}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {success && (
+          <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+            {success}
+          </div>
+        )}
+
         <div>
           <label className="text-xs font-semibold text-slate-600">
             Email Address
@@ -44,16 +78,18 @@ function ForgotPasswordForm() {
             type="email"
             placeholder="name@company.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => setEmail(event.target.value)}
+            required
             className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-600"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full bg-[#0b2a4a] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#123b66]"
+          disabled={loading}
+          className="w-full bg-[#0b2a4a] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#123b66] disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Send OTP →
+          {loading ? "Sending OTP..." : "Send OTP →"}
         </button>
       </form>
 
