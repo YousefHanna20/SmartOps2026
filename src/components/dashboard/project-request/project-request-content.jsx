@@ -77,84 +77,8 @@ function ProjectRequestContent() {
         requests, while administrators review approvals and allocation.
       </p>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-6 mt-10">
-        {/* Request Form */}
-        <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="font-black text-[#0b2a4a]">Request Project</h3>
-
-          <p className="text-xs text-slate-400 uppercase tracking-widest mb-6">
-            Initiate New Specification
-          </p>
-
-          <form className="space-y-4">
-            <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                Project Name
-              </label>
-
-              <input
-                className="mt-2 w-full bg-slate-100 rounded-lg px-4 py-3 text-sm outline-none"
-                placeholder="Enter project name"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                Deadline
-              </label>
-
-              <input
-                type="date"
-                className="mt-2 w-full bg-slate-100 rounded-lg px-4 py-3 text-sm outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                Project Template Optional
-              </label>
-
-              <select className="mt-2 w-full bg-slate-100 rounded-lg px-4 py-3 text-sm outline-none">
-                {templates.map((template) => (
-                  <option key={template}>{template}</option>
-                ))}
-              </select>
-
-              <p className="text-xs text-slate-400 mt-2">
-                You can request a custom project without selecting a template.
-              </p>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                Description
-              </label>
-
-              <textarea
-                className="mt-2 w-full h-32 bg-slate-100 rounded-lg px-4 py-3 text-sm outline-none resize-none"
-                placeholder="Describe the project requirements, goals, and constraints..."
-              ></textarea>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                Status
-              </label>
-
-              <div className="mt-2 inline-flex px-4 py-2 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">
-                Pending
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="w-full bg-[#082b4f] text-white rounded-lg py-3 font-bold text-sm hover:opacity-90 transition"
-            >
-              Submit Request →
-            </button>
-          </form>
-        </section>
-
+      <div className="grid grid-cols-1 gap-6 mt-10">
+        
         {/* Pending Approval */}
         <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
           <div className="flex justify-between items-start mb-6">
