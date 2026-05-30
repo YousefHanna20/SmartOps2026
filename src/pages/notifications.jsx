@@ -1,9 +1,9 @@
 import AppShell from "../components/layout/app-shell";
-import NotificationsHeader from "../components/notifications/notifications-header";
-import NotificationsFeed from "../components/notifications/notifications-feed";
-import NotificationsOverview from "../components/notifications/notifications-overview";
-import PinnedThreads from "../components/notifications/pinned-threads";
-import IntegratedChannels from "../components/notifications/integrated-channels";
+import NotificationsHeader from "../components/dashboard/notifications/notifications-header";
+import NotificationsFeed from "../components/dashboard/notifications/notifications-feed";
+import NotificationsOverview from "../components/dashboard/notifications/notifications-overview";
+import PinnedThreads from "../components/dashboard/notifications/pinned-threads";
+import IntegratedChannels from "../components/dashboard/notifications/integrated-channels";
 
 function Notifications() {
   return (

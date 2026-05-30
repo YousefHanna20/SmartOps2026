@@ -1,5 +1,5 @@
 import { useState } from "react";
-import requestStatsImg from "../../assets/nexus-wing.png";
+import requestStatsImg from "../../../assets/nexus-wing.png";
 
 function ProjectRequestContent() {
   const [rejectingRequestId, setRejectingRequestId] = useState(null);

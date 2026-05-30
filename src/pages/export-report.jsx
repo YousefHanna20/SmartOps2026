@@ -1,5 +1,5 @@
 import AppShell from "../components/layout/app-shell";
-import ExportReportContent from "../components/tasks/export-report-content";
+import ExportReportContent from "../components/dashboard/tasks/export-report-content";
 
 function ExportReport() {
   return (

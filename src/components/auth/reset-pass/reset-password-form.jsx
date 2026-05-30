@@ -1,47 +1,55 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { resetPassword } from "../../../services/user-service";
+
+const resetPasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(1, "New password is required")
+      .min(6, "New password must be at least 6 characters"),
+
+    confirmPassword: z
+      .string()
+      .min(1, "Confirm password is required"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 function ResetPasswordForm() {
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    newPassword: "",
-    confirmPassword: "",
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState([]);
   const [success, setSuccess] = useState("");
 
   const email = localStorage.getItem("resetEmail");
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
 
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    setErrors([]);
+  const onSubmit = async (formData) => {
     setSuccess("");
 
     if (!email) {
-      setErrors(["Email not found. Please request a new OTP."]);
+      setError("root", {
+        type: "manual",
+        message: "Email not found. Please request a new OTP.",
+      });
       return;
     }
-
-    if (formData.newPassword !== formData.confirmPassword) {
-      setErrors(["Passwords do not match"]);
-      return;
-    }
-
-    setLoading(true);
 
     try {
       const data = await resetPassword({
@@ -60,14 +68,19 @@ function ResetPasswordForm() {
       const responseData = error.response?.data;
 
       if (responseData?.errors) {
-        setErrors(responseData.errors.map((err) => err.message));
+        responseData.errors.forEach((err) => {
+          setError(err.field || "root", {
+            type: "server",
+            message: err.message,
+          });
+        });
       } else {
-        setErrors([
-          responseData?.message || "Password reset failed. Please try again.",
-        ]);
+        setError("root", {
+          type: "server",
+          message:
+            responseData?.message || "Password reset failed. Please try again.",
+        });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -81,14 +94,10 @@ function ResetPasswordForm() {
         Your new password must be different from previous used passwords.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-        {errors.length > 0 && (
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
+        {errors.root && (
           <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-            <ul className="list-disc list-inside space-y-1">
-              {errors.map((errorMessage, index) => (
-                <li key={index}>{errorMessage}</li>
-              ))}
-            </ul>
+            {errors.root.message}
           </div>
         )}
 
@@ -111,13 +120,16 @@ function ResetPasswordForm() {
 
           <input
             type="password"
-            name="newPassword"
-            value={formData.newPassword}
-            onChange={handleChange}
             placeholder="********"
-            required
             className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-600"
+            {...register("newPassword")}
           />
+
+          {errors.newPassword && (
+            <p className="text-xs text-red-600 mt-1">
+              {errors.newPassword.message}
+            </p>
+          )}
         </div>
 
         <div>
@@ -127,21 +139,24 @@ function ResetPasswordForm() {
 
           <input
             type="password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
             placeholder="********"
-            required
             className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-600"
+            {...register("confirmPassword")}
           />
+
+          {errors.confirmPassword && (
+            <p className="text-xs text-red-600 mt-1">
+              {errors.confirmPassword.message}
+            </p>
+          )}
         </div>
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={isSubmitting}
           className="w-full bg-[#0b2a4a] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#123b66] disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {loading ? "Resetting..." : "Reset Password"}
+          {isSubmitting ? "Resetting..." : "Reset Password"}
         </button>
       </form>
 

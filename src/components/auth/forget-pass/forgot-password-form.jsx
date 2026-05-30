@@ -1,28 +1,42 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPassword } from "../../../services/user-service";
+
+const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address"),
+});
 
 function ForgotPasswordForm() {
   const navigate = useNavigate();
-
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState([]);
   const [success, setSuccess] = useState("");
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
 
-    setErrors([]);
+  const onSubmit = async (formData) => {
     setSuccess("");
-    setLoading(true);
 
     try {
-      const data = await forgotPassword(email);
+      const data = await forgotPassword(formData.email);
 
       setSuccess(data.message || "OTP sent to your email successfully");
 
-      localStorage.setItem("resetEmail", email);
+      localStorage.setItem("resetEmail", formData.email);
 
       setTimeout(() => {
         navigate("/otp");
@@ -31,14 +45,19 @@ function ForgotPasswordForm() {
       const responseData = error.response?.data;
 
       if (responseData?.errors) {
-        setErrors(responseData.errors.map((err) => err.message));
+        responseData.errors.forEach((err) => {
+          setError(err.field || "root", {
+            type: "server",
+            message: err.message,
+          });
+        });
       } else {
-        setErrors([
-          responseData?.message || "Failed to send OTP. Please try again.",
-        ]);
+        setError("root", {
+          type: "server",
+          message:
+            responseData?.message || "Failed to send OTP. Please try again.",
+        });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -52,14 +71,10 @@ function ForgotPasswordForm() {
         Enter your email to receive a password reset code.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-        {errors.length > 0 && (
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
+        {errors.root && (
           <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-            <ul className="list-disc list-inside space-y-1">
-              {errors.map((errorMessage, index) => (
-                <li key={index}>{errorMessage}</li>
-              ))}
-            </ul>
+            {errors.root.message}
           </div>
         )}
 
@@ -77,19 +92,23 @@ function ForgotPasswordForm() {
           <input
             type="email"
             placeholder="name@company.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
             className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-600"
+            {...register("email")}
           />
+
+          {errors.email && (
+            <p className="text-xs text-red-600 mt-1">
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={isSubmitting}
           className="w-full bg-[#0b2a4a] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#123b66] disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {loading ? "Sending OTP..." : "Send OTP →"}
+          {isSubmitting ? "Sending OTP..." : "Send OTP →"}
         </button>
       </form>
 
