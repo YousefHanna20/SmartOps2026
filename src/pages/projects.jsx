@@ -1,9 +1,9 @@
 import AppShell from "../components/layout/app-shell";
 
-import ProjectsHeader from "../components/projects/projects-header";
-import ProjectsTable from "../components/projects/projects-table";
-import TeamInsights from "../components/projects/team-insights";
-import SystemHealth from "../components/projects/system-health";
+import ProjectsHeader from "../components/dashboard/projects/project-contant/projects-header";
+import ProjectsTable from "../components/dashboard/projects/project-contant/projects-table";
+import TeamInsights from "../components/dashboard/projects/project-contant/team-insights";
+import SystemHealth from "../components/dashboard/projects/project-contant/system-health";
 
 function Projects() {
   return (

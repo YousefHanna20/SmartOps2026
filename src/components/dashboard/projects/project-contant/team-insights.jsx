@@ -1,4 +1,4 @@
-import SprintCard from "./sprint-card.jsx";
+import SprintCard from "./sprint-card.jsx.jsx";
 
 function TeamInsights() {
   return (

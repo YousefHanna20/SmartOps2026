@@ -1,50 +1,57 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "../../../context/auth-context";
+
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address"),
+
+  password: z
+    .string()
+    .min(1, "Password is required"),
+});
 
 function LoginForm() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
   });
 
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState([]);
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    setErrors([]);
-    setLoading(true);
-
+  const onSubmit = async (formData) => {
     try {
       await login(formData);
-
       navigate("/dashboard");
     } catch (error) {
       const responseData = error.response?.data;
 
       if (responseData?.errors) {
-        setErrors(responseData.errors.map((err) => err.message));
+        responseData.errors.forEach((err) => {
+          setError(err.field || "root", {
+            type: "server",
+            message: err.message,
+          });
+        });
       } else {
-        setErrors([
-          responseData?.message || "Login failed. Please try again.",
-        ]);
+        setError("root", {
+          type: "server",
+          message: responseData?.message || "Login failed. Please try again.",
+        });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -58,14 +65,10 @@ function LoginForm() {
         Access your architectural dashboard.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-        {errors.length > 0 && (
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
+        {errors.root && (
           <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-            <ul className="list-disc list-inside space-y-1">
-              {errors.map((errorMessage, index) => (
-                <li key={index}>{errorMessage}</li>
-              ))}
-            </ul>
+            {errors.root.message}
           </div>
         )}
 
@@ -76,13 +79,16 @@ function LoginForm() {
 
           <input
             type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
             placeholder="name@company.com"
-            required
             className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-600"
+            {...register("email")}
           />
+
+          {errors.email && (
+            <p className="text-xs text-red-600 mt-1">
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <div>
@@ -101,21 +107,24 @@ function LoginForm() {
 
           <input
             type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
             placeholder="********"
-            required
             className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-600"
+            {...register("password")}
           />
+
+          {errors.password && (
+            <p className="text-xs text-red-600 mt-1">
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={isSubmitting}
           className="w-full bg-[#0b2a4a] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#123b66] disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {loading ? "Signing in..." : "Sign Into Dashboard"}
+          {isSubmitting ? "Signing in..." : "Sign Into Dashboard"}
         </button>
       </form>
 

@@ -1,5 +1,5 @@
 import AppShell from "../components/layout/app-shell";
-import ProjectRequestContent from "../components/project-request/project-request-content";
+import ProjectRequestContent from "../components/dashboard/project-request/project-request-content";
 
 function ProjectRequest() {
   return (

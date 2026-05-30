@@ -1,35 +1,48 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { registerUser } from "../../../services/user-service";
+
+const registerSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must be less than 100 characters"),
+
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address"),
+
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters"),
+});
 
 function RegisterForm() {
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState([]);
   const [success, setSuccess] = useState("");
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
+  });
 
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    setErrors([]);
+  const onSubmit = async (formData) => {
     setSuccess("");
-    setLoading(true);
 
     try {
       const data = await registerUser(formData);
@@ -43,14 +56,19 @@ function RegisterForm() {
       const responseData = error.response?.data;
 
       if (responseData?.errors) {
-        setErrors(responseData.errors.map((err) => err.message));
+        responseData.errors.forEach((err) => {
+          setError(err.field || "root", {
+            type: "server",
+            message: err.message,
+          });
+        });
       } else {
-        setErrors([
-          responseData?.message || "Register failed. Please try again.",
-        ]);
+        setError("root", {
+          type: "server",
+          message:
+            responseData?.message || "Register failed. Please try again.",
+        });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -67,14 +85,10 @@ function RegisterForm() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {errors.length > 0 && (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {errors.root && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-              <ul className="list-disc list-inside space-y-1">
-                {errors.map((errorMessage, index) => (
-                  <li key={index}>{errorMessage}</li>
-                ))}
-              </ul>
+              {errors.root.message}
             </div>
           )}
 
@@ -88,28 +102,25 @@ function RegisterForm() {
             <FormInput
               label="Full Name"
               type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
               placeholder="Johnathan Sterling"
+              error={errors.name?.message}
+              registerProps={register("name")}
             />
 
             <FormInput
               label="Email Address"
               type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
               placeholder="j.sterling@firm.com"
+              error={errors.email?.message}
+              registerProps={register("email")}
             />
 
             <FormInput
               label="Password"
               type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
               placeholder="••••••••••••"
+              error={errors.password?.message}
+              registerProps={register("password")}
             />
           </div>
 
@@ -117,55 +128,15 @@ function RegisterForm() {
             <button
               className="w-full bg-primary text-on-primary font-bold py-4 rounded-lg shadow-lg shadow-primary/10 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed"
               type="submit"
-              disabled={loading}
+              disabled={isSubmitting}
             >
-              {loading ? "Creating Account..." : "Initialize Account"}
+              {isSubmitting ? "Creating Account..." : "Initialize Account"}
 
               <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">
                 arrow_forward
               </span>
             </button>
           </div>
-
-        {/*}  <div className="flex items-center gap-4 py-2">
-            <div className="h-[1px] flex-grow bg-outline-variant/30" />
-
-            <span className="text-[10px] font-bold uppercase tracking-widest text-outline">
-              Social Registration
-            </span>
-
-            <div className="h-[1px] flex-grow bg-outline-variant/30" />
-          </div> */}
-
-         {/* <div className="grid grid-cols-2 gap-4">
-            <button
-              className="flex items-center justify-center gap-2 py-3 rounded-lg bg-surface-container-low border border-outline-variant/15 hover:bg-surface-container-high transition-colors"
-              type="button"
-            >
-              <img
-                alt="Google"
-                className="w-4 h-4"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFB0ojiuNMuugT1AhpjMEOCFtWRmuSsBLLRCIo0XO1OMcrZNcBZ7dCEEbaTgXUJQohLzN_pSk3A8W6qzfj4rG7q2b2DxAHpx7NsnVwtlW_TKukbnPzFn0Txhg-rsH15Lx5x93C17Csuzl0QP4qp8lFdu_7GJqk46mAjaYpy7A5G9BvN2m5CPgWoDkCwD2egmbImZhsbpTyji39g1CT4nv9Ikq64mC-ZQKw19nOZYVnaYb23QKUVKhGR4TJprXFKkf9-J5fa9xS4tw"
-              />
-
-              <span className="text-[11px] font-bold uppercase tracking-widest text-on-surface">
-                Google
-              </span>
-            </button>
-
-            <button
-              className="flex items-center justify-center gap-2 py-3 rounded-lg bg-surface-container-low border border-outline-variant/15 hover:bg-surface-container-high transition-colors"
-              type="button"
-            >
-              <svg className="w-4 h-4 fill-on-surface" viewBox="0 0 24 24">
-                <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-              </svg>
-
-              <span className="text-[11px] font-bold uppercase tracking-widest text-on-surface">
-                Github
-              </span>
-            </button>
-          </div> */}
 
           <p className="text-center text-sm text-on-surface-variant pt-4">
             Already part of SmartOps?{" "}
@@ -183,7 +154,7 @@ function RegisterForm() {
   );
 }
 
-function FormInput({ label, type, name, value, onChange, placeholder }) {
+function FormInput({ label, type, placeholder, registerProps, error }) {
   return (
     <div className="space-y-2">
       <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant block">
@@ -194,11 +165,10 @@ function FormInput({ label, type, name, value, onChange, placeholder }) {
         className="w-full bg-surface-container-high border-none rounded-lg px-4 py-3.5 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all duration-300 text-on-surface placeholder:text-outline"
         placeholder={placeholder}
         type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        required
+        {...registerProps}
       />
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
 }

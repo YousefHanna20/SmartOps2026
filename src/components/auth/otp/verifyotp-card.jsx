@@ -1,62 +1,91 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { verifyOtp, forgotPassword } from "../../../services/user-service";
+
+const otpSchema = z.object({
+  otp1: z.string().regex(/^\d$/, "OTP must be 6 digits"),
+  otp2: z.string().regex(/^\d$/, "OTP must be 6 digits"),
+  otp3: z.string().regex(/^\d$/, "OTP must be 6 digits"),
+  otp4: z.string().regex(/^\d$/, "OTP must be 6 digits"),
+  otp5: z.string().regex(/^\d$/, "OTP must be 6 digits"),
+  otp6: z.string().regex(/^\d$/, "OTP must be 6 digits"),
+});
 
 function VerifyOtpCard() {
   const navigate = useNavigate();
 
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [errors, setErrors] = useState([]);
   const [success, setSuccess] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
 
   const email = localStorage.getItem("resetEmail");
 
-  const handleChange = (index, value) => {
-    if (!/^\d?$/.test(value)) return;
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    setError,
+    clearErrors,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      otp1: "",
+      otp2: "",
+      otp3: "",
+      otp4: "",
+      otp5: "",
+      otp6: "",
+    },
+  });
 
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
+  const otpValues = watch();
 
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
+  const getOtpCode = (data) => {
+    return `${data.otp1}${data.otp2}${data.otp3}${data.otp4}${data.otp5}${data.otp6}`;
+  };
+
+  const handleOtpChange = (event, index) => {
+    const value = event.target.value.replace(/\D/g, "").slice(0, 1);
+
+    setValue(`otp${index}`, value, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+
+    clearErrors("root");
+
+    if (value && index < 6) {
+      document.getElementById(`otp-${index + 1}`)?.focus();
     }
   };
 
-  const handleKeyDown = (index, event) => {
-    if (event.key === "Backspace" && !otp[index] && index > 0) {
-      const previousInput = document.getElementById(`otp-${index - 1}`);
-      previousInput?.focus();
+  const handleKeyDown = (event, index) => {
+    if (event.key === "Backspace" && !watch(`otp${index}`) && index > 1) {
+      document.getElementById(`otp-${index - 1}`)?.focus();
     }
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    setErrors([]);
+  const onSubmit = async (formData) => {
     setSuccess("");
 
     if (!email) {
-      setErrors(["Email not found. Please request a new OTP."]);
+      setError("root", {
+        type: "manual",
+        message: "Email not found. Please request a new OTP.",
+      });
       return;
     }
 
-    const otpCode = otp.join("");
-
-    if (otpCode.length !== 6) {
-      setErrors(["OTP must be 6 digits"]);
-      return;
-    }
-
-    setLoading(true);
+    const otp = getOtpCode(formData);
 
     try {
       const data = await verifyOtp({
         email,
-        otp: otpCode,
+        otp,
       });
 
       setSuccess(data.message || "OTP verified successfully");
@@ -68,23 +97,31 @@ function VerifyOtpCard() {
       const responseData = error.response?.data;
 
       if (responseData?.errors) {
-        setErrors(responseData.errors.map((err) => err.message));
+        responseData.errors.forEach((err) => {
+          setError("root", {
+            type: "server",
+            message: err.message,
+          });
+        });
       } else {
-        setErrors([
-          responseData?.message || "OTP verification failed. Please try again.",
-        ]);
+        setError("root", {
+          type: "server",
+          message:
+            responseData?.message || "OTP verification failed. Please try again.",
+        });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleResendOtp = async () => {
-    setErrors([]);
     setSuccess("");
+    clearErrors();
 
     if (!email) {
-      setErrors(["Email not found. Please request a new OTP."]);
+      setError("root", {
+        type: "manual",
+        message: "Email not found. Please request a new OTP.",
+      });
       return;
     }
 
@@ -92,22 +129,44 @@ function VerifyOtpCard() {
 
     try {
       const data = await forgotPassword(email);
+
       setSuccess(data.message || "OTP sent to your email successfully");
-      setOtp(["", "", "", "", "", ""]);
+
+      for (let i = 1; i <= 6; i++) {
+        setValue(`otp${i}`, "");
+      }
+
+      document.getElementById("otp-1")?.focus();
     } catch (error) {
       const responseData = error.response?.data;
 
       if (responseData?.errors) {
-        setErrors(responseData.errors.map((err) => err.message));
+        responseData.errors.forEach((err) => {
+          setError("root", {
+            type: "server",
+            message: err.message,
+          });
+        });
       } else {
-        setErrors([
-          responseData?.message || "Failed to resend OTP. Please try again.",
-        ]);
+        setError("root", {
+          type: "server",
+          message:
+            responseData?.message || "Failed to resend OTP. Please try again.",
+        });
       }
     } finally {
       setResendLoading(false);
     }
   };
+
+  const otpError =
+    errors.root?.message ||
+    errors.otp1?.message ||
+    errors.otp2?.message ||
+    errors.otp3?.message ||
+    errors.otp4?.message ||
+    errors.otp5?.message ||
+    errors.otp6?.message;
 
   return (
     <div className="w-full max-w-[480px]">
@@ -144,14 +203,10 @@ function VerifyOtpCard() {
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="w-full space-y-10">
-            {errors.length > 0 && (
+          <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-10">
+            {otpError && (
               <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600 text-left">
-                <ul className="list-disc list-inside space-y-1">
-                  {errors.map((errorMessage, index) => (
-                    <li key={index}>{errorMessage}</li>
-                  ))}
-                </ul>
+                {otpError}
               </div>
             )}
 
@@ -162,18 +217,19 @@ function VerifyOtpCard() {
             )}
 
             <div className="flex justify-between gap-3 sm:gap-4">
-              {otp.map((digit, index) => (
+              {[1, 2, 3, 4, 5, 6].map((index) => (
                 <input
                   id={`otp-${index}`}
                   key={index}
-                  aria-label={`Digit ${index + 1}`}
+                  aria-label={`Digit ${index}`}
                   className="otp-field w-full h-14 sm:h-16 text-center text-2xl font-bold rounded-md bg-surface-container-high border-none transition-all duration-200 text-primary focus:outline-none focus:bg-white focus:shadow-[0_0_0_1px_#03244833]"
                   maxLength="1"
                   type="text"
                   inputMode="numeric"
-                  value={digit}
-                  onChange={(event) => handleChange(index, event.target.value)}
-                  onKeyDown={(event) => handleKeyDown(index, event)}
+                  value={otpValues[`otp${index}`] || ""}
+                  {...register(`otp${index}`)}
+                  onChange={(event) => handleOtpChange(event, index)}
+                  onKeyDown={(event) => handleKeyDown(event, index)}
                 />
               ))}
             </div>
@@ -182,9 +238,9 @@ function VerifyOtpCard() {
               <button
                 className="w-full h-12 bg-gradient-to-br from-primary to-primary-container text-on-primary font-semibold rounded-md shadow-lg shadow-primary/10 hover:opacity-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting}
               >
-                {loading ? "Verifying..." : "Verify"}
+                {isSubmitting ? "Verifying..." : "Verify"}
               </button>
 
               <div className="flex flex-col items-center gap-4">
@@ -192,7 +248,7 @@ function VerifyOtpCard() {
                   onClick={handleResendOtp}
                   className="text-sm font-medium text-primary hover:underline underline-offset-4 decoration-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   type="button"
-                  disabled={resendLoading}
+                  disabled={resendLoading || isSubmitting}
                 >
                   {resendLoading ? "Sending..." : "Resend OTP"}
                 </button>
@@ -216,24 +272,6 @@ function VerifyOtpCard() {
       </div>
 
       <div className="mt-8 flex flex-col items-center gap-6 opacity-60">
-        <div className="flex gap-4">
-          <div className="w-24 h-16 rounded-md bg-surface-container-low flex items-center justify-center p-3">
-            <img
-              alt="ISO Certification"
-              className="opacity-50 mix-blend-multiply"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBq_6ysQBQGkK7dSlsC60qKFlxtEuXivRd12Bf--schTNLX4OU3caG0df6UE6qC2wnsslSXBHOnRszoJe7pilLno-QRuKf_KGnN3eC--Jta8ktsLmBTRkOnu1pnVjARsgU_EDGaXKIB7JaJYd82_pS52ILRrWqonU1Bp_hFdZ2pcMoyrKa7SRjk5MgvKpJVaLfPcsV-Z2RmgherHNvuPYJhKUbw2ntJEFSi28ABiMWPz1B-l3H01pdIu74fY2NCNmN47Cq1k-K6LRM"
-            />
-          </div>
-
-          <div className="w-24 h-16 rounded-md bg-surface-container-low flex items-center justify-center p-3">
-            <img
-              alt="Data Protection"
-              className="opacity-50 mix-blend-multiply"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuB87UDKTxF0Xvh2zopgvrnefe_Pd5tTl2iPGk9gKb-ux0MWoXN85uoYLUMzvv4gzOnNPcO0ycQBGbni_TG3WnM-copRKdmj1AbUPH20a4kbIZyzT1wF7RbFpSziDnzHQkv25fMAAGYcO2553OLSREkfzJ8m6b2jIJRSUhUspVH_eSQ4GCHkuwEu6h112e43xZ58ITVMMKSTyhV9TXqPXeBEbppk_PPFb0nzJtqTXIc6sciQbsJBNXmLFlpriyEurCEsc2_9Zc5jNgA"
-            />
-          </div>
-        </div>
-
         <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-[0.2em]">
           Enterprise Grade Meridian Security
         </p>

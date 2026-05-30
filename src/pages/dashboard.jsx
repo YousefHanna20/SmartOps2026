@@ -1,10 +1,10 @@
 import AppShell from "../components/layout/app-shell";
-import WelcomeSection from "../components/dashboard/welcome-section";
-import StatsGrid from "../components/dashboard/stats-grid";
-import AiInsights from "../components/dashboard/ai-insights";
-import RecentActivity from "../components/dashboard/recent-activity";
-import ProjectSpotlight from "../components/dashboard/project-spotlight";
-import UpcomingDeadlines from "../components/dashboard/upcoming-deadlines";
+import WelcomeSection from "../components/dashboard/dashboard-contant/welcome-section";
+import StatsGrid from "../components/dashboard/dashboard-contant/stats-grid";
+import AiInsights from "../components/dashboard/dashboard-contant/ai-insights";
+import RecentActivity from "../components/dashboard/dashboard-contant/recent-activity";
+import ProjectSpotlight from "../components/dashboard/dashboard-contant/project-spotlight";
+import UpcomingDeadlines from "../components/dashboard/dashboard-contant/upcoming-deadlines";
 
 function Dashboard() {
   return (

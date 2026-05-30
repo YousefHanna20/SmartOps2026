@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { useAuth } from "../../../context/auth-context";
 function ProjectTemplatesContent() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const user = {
-    role: "admin", // change to "client" to test client view
-  };
+  const role = user?.role;
+
+  const isAdmin = role === "admin";
+  const isClient = role === "client";
 
   const [showCreateBox, setShowCreateBox] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -86,7 +88,8 @@ function ProjectTemplatesContent() {
       category: templateForm.category,
       duration: `${templateForm.estimatedDuration} Days`,
       status: templateForm.status,
-      description: templateForm.description || "Framework template ready for use.",
+      description:
+        templateForm.description || "Framework template ready for use.",
     };
 
     setTemplates([createdTemplate, ...templates]);
@@ -360,7 +363,11 @@ function ProjectTemplatesContent() {
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">
-            Administration Cell
+            {isAdmin
+              ? "Administration Cell"
+              : isClient
+              ? "Client Templates"
+              : "Templates"}
           </p>
 
           <h2 className="text-4xl font-black text-[#0b2a4a] mt-2">
@@ -368,12 +375,13 @@ function ProjectTemplatesContent() {
           </h2>
 
           <p className="text-slate-500 max-w-2xl mt-3">
-            System-wide architectural blueprints for automated operational
-            scaling. Define structure, duration, and core metrics.
+            {isAdmin
+              ? "System-wide architectural blueprints for automated operational scaling. Define structure, duration, and core metrics."
+              : "Browse available project templates and use one to submit a project request."}
           </p>
         </div>
 
-        {user.role === "admin" && (
+        {isAdmin && (
           <button
             type="button"
             onClick={openCreateBox}
@@ -402,32 +410,34 @@ function ProjectTemplatesContent() {
 
       {deletingTemplate && <DeleteConfirmModal />}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
-        {[
-          ["Active Blueprints", templates.length, "+12%"],
-          ["Avg Execution", "14 Days", "System optimized"],
-          ["Global Utilization", "82%", "Capacity reached"],
-        ].map(([label, value, note]) => (
-          <div
-            key={label}
-            className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm"
-          >
-            <p className="text-xs uppercase tracking-widest text-slate-400">
-              {label}
-            </p>
+      {isAdmin && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
+          {[
+            ["Active Blueprints", templates.length, "+12%"],
+            ["Avg Execution", "14 Days", "System optimized"],
+            ["Global Utilization", "82%", "Capacity reached"],
+          ].map(([label, value, note]) => (
+            <div
+              key={label}
+              className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm"
+            >
+              <p className="text-xs uppercase tracking-widest text-slate-400">
+                {label}
+              </p>
 
-            <h3 className="text-3xl font-black text-[#0b2a4a] mt-3">
-              {value}
-            </h3>
+              <h3 className="text-3xl font-black text-[#0b2a4a] mt-3">
+                {value}
+              </h3>
 
-            <p className="text-xs text-slate-400 mt-2">{note}</p>
-          </div>
-        ))}
-      </div>
+              <p className="text-xs text-slate-400 mt-2">{note}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <section className="bg-white rounded-2xl shadow-sm border border-slate-100 mt-8 overflow-hidden">
         <div className="flex justify-between items-center px-6 py-5 border-b">
-          <h3 className="font-black text-[#0b2a4a]">Projects Template</h3>
+          <h3 className="font-black text-[#0b2a4a]">Project Templates</h3>
 
           <div className="flex gap-3 text-slate-400">
             <span className="material-symbols-outlined">filter_list</span>
@@ -470,7 +480,7 @@ function ProjectTemplatesContent() {
             </span>
 
             <div className="flex gap-2 items-center">
-              {user.role === "client" && (
+              {isClient && (
                 <button
                   type="button"
                   onClick={() => handleUseTemplate(template)}
@@ -480,7 +490,7 @@ function ProjectTemplatesContent() {
                 </button>
               )}
 
-              {user.role === "admin" && (
+              {isAdmin && (
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -498,6 +508,12 @@ function ProjectTemplatesContent() {
                     Delete
                   </button>
                 </div>
+              )}
+
+              {!isAdmin && !isClient && (
+                <span className="text-xs text-slate-400 font-bold">
+                  View Only
+                </span>
               )}
             </div>
           </div>

@@ -1,5 +1,5 @@
 import AppShell from "../components/layout/app-shell";
-import ProjectTemplatesContent from "../components/project-templates/project-templates-content";
+import ProjectTemplatesContent from "../components/dashboard/project-templates/project-templates-content";
 
 function ProjectTemplates() {
   return (
