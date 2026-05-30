@@ -1,8 +1,8 @@
 import AppShell from "../components/layout/app-shell";
-import ProjectSummary from "../components/dashboard/project/project-details/project-summary";
-import ActiveTasks from "../components/dashboard/project/project-details/active-tasks";
-import ProjectSideInfo from "../components/dashboard/project/project-details/project-side-info";
-import ProjectFab from "../components/dashboard/project/project-details/project-fab";
+import ProjectSummary from "../components/dashboard/projects/project-details/project-summary";
+import ActiveTasks from "../components/dashboard/projects/project-details/active-tasks";
+import ProjectSideInfo from "../components/dashboard/projects/project-details/project-side-info";
+import ProjectFab from "../components/dashboard/projects/project-details/project-fab";
 
 function ProjectDetails() {
   return (
