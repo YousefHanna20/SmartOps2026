@@ -3,11 +3,18 @@ import { getCurrentUser, loginUser } from "../services/user-service";
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
+const getSavedUser = () => {
+  try {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
-  });
+  } catch (error) {
+    localStorage.removeItem("user");
+    return null;
+  }
+};
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(getSavedUser);
 
   const [token, setToken] = useState(() => {
     return localStorage.getItem("token") || null;
@@ -32,6 +39,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    sessionStorage.removeItem("resetEmail");
 
     setToken(null);
     setUser(null);

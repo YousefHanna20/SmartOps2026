@@ -10,13 +10,47 @@ function AppShell({ children, activePage }) {
   const { user, logout } = useAuth();
 
   const links = [
-    { label: "Dashboard", path: "/dashboard", icon: "dashboard" },
-    { label: "Projects", path: "/projects", icon: "account_tree" },
-    { label: "Tasks", path: "/tasks", icon: "check_box" },
-    { label: "Requests", path: "/requests", icon: "approval" },
-    { label: "Templates", path: "/templates", icon: "layers" },
-    { label: "Notifications", path: "/notifications", icon: "notifications" },
+    {
+      label: "Dashboard",
+      path: "/dashboard",
+      icon: "dashboard",
+      roles: ["admin", "employee", "client"],
+    },
+    {
+      label: "Projects",
+      path: "/projects",
+      icon: "account_tree",
+      roles: ["admin", "employee", "client"],
+    },
+    {
+      label: "Tasks",
+      path: "/tasks",
+      icon: "check_box",
+      roles: ["admin", "employee"],
+    },
+    {
+      label: "Requests",
+      path: "/requests",
+      icon: "approval",
+      roles: ["admin", "client"],
+    },
+    {
+      label: "Templates",
+      path: "/templates",
+      icon: "layers",
+      roles: ["admin", "client"],
+    },
+    {
+      label: "Notifications",
+      path: "/notifications",
+      icon: "notifications",
+      roles: ["admin", "employee", "client"],
+    },
   ];
+
+  const visibleLinks = links.filter((item) =>
+    item.roles.includes(user?.role)
+  );
 
   const handleLogout = () => {
     logout();
@@ -44,7 +78,7 @@ function AppShell({ children, activePage }) {
       </div>
 
       <nav className="flex flex-col gap-2">
-        {links.map((item) => {
+        {visibleLinks.map((item) => {
           const isActive =
             activePage === item.label || location.pathname === item.path;
 
@@ -121,6 +155,7 @@ function AppShell({ children, activePage }) {
             <span className="material-symbols-outlined text-slate-400 text-[18px]">
               search
             </span>
+
             <input
               className="bg-transparent outline-none w-full text-sm placeholder:text-slate-400"
               placeholder="Search systems..."
@@ -128,13 +163,21 @@ function AppShell({ children, activePage }) {
           </div>
 
           <div className="flex items-center gap-4 text-slate-500 ml-auto">
-            <span className="material-symbols-outlined">notifications</span>
+            <Link
+              to="/notifications"
+              className="hover:text-[#0b2a4a] transition"
+              title="Notifications"
+            >
+              <span className="material-symbols-outlined">notifications</span>
+            </Link>
+
             <span className="material-symbols-outlined">settings</span>
 
             <div className="hidden sm:flex flex-col text-right leading-tight">
               <span className="text-xs font-bold text-slate-700">
                 {user?.name || "User"}
               </span>
+
               <span className="text-[10px] uppercase text-slate-400">
                 {user?.role || "member"}
               </span>
@@ -162,14 +205,14 @@ function AppShell({ children, activePage }) {
         <footer className="px-4 lg:px-10 py-8 text-xs text-slate-400 flex flex-col md:flex-row justify-between gap-4">
           <p>
             <span className="font-bold text-[#0b2a4a]">SmartOps</span> <br />
-            © 2024 SmartOps Architectural Systems
+            © 2026 SmartOps Architectural Systems
           </p>
 
           <div className="flex gap-6">
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">API Docs</a>
-            <a href="#">Support</a>
+            <span>Privacy</span>
+            <span>Terms</span>
+            <span>API Docs</span>
+            <span>Support</span>
           </div>
         </footer>
       </div>

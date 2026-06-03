@@ -3,7 +3,7 @@ import AssignTaskForm from "../components/dashboard/tasks/assign-task-form";
 
 function AssignTask() {
   return (
-    <AppShell>
+    <AppShell activePage="Tasks">
       <AssignTaskForm />
     </AppShell>
   );

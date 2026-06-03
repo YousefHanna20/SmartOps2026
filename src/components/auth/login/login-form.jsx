@@ -1,23 +1,31 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+
 import { useAuth } from "../../../context/auth-context";
+import { handleApiError } from "../../../utils/handle-api-error";
 
 const loginSchema = z.object({
   email: z
     .string()
+    .trim()
     .min(1, "Email is required")
     .email("Please enter a valid email address"),
 
   password: z
     .string()
-    .min(1, "Password is required"),
+    .trim()
+    .min(1, "Password is required")
+    .min(8, "Password must be at least 8 characters"),
 });
 
 function LoginForm() {
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -26,6 +34,7 @@ function LoginForm() {
     setError,
   } = useForm({
     resolver: zodResolver(loginSchema),
+    mode: "onBlur",
     defaultValues: {
       email: "",
       password: "",
@@ -37,21 +46,7 @@ function LoginForm() {
       await login(formData);
       navigate("/dashboard");
     } catch (error) {
-      const responseData = error.response?.data;
-
-      if (responseData?.errors) {
-        responseData.errors.forEach((err) => {
-          setError(err.field || "root", {
-            type: "server",
-            message: err.message,
-          });
-        });
-      } else {
-        setError("root", {
-          type: "server",
-          message: responseData?.message || "Login failed. Please try again.",
-        });
-      }
+      handleApiError(error, setError, "Login failed. Please try again.");
     }
   };
 
@@ -73,19 +68,26 @@ function LoginForm() {
         )}
 
         <div>
-          <label className="text-xs font-semibold text-slate-600">
+          <label
+            htmlFor="email"
+            className="text-xs font-semibold text-slate-600"
+          >
             Email Address
           </label>
 
           <input
+            id="email"
             type="email"
             placeholder="name@company.com"
+            autoComplete="email"
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "email-error" : undefined}
             className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-600"
             {...register("email")}
           />
 
           {errors.email && (
-            <p className="text-xs text-red-600 mt-1">
+            <p id="email-error" className="text-xs text-red-600 mt-1">
               {errors.email.message}
             </p>
           )}
@@ -93,7 +95,10 @@ function LoginForm() {
 
         <div>
           <div className="flex justify-between">
-            <label className="text-xs font-semibold text-slate-600">
+            <label
+              htmlFor="password"
+              className="text-xs font-semibold text-slate-600"
+            >
               Password
             </label>
 
@@ -101,19 +106,36 @@ function LoginForm() {
               to="/forgot-password"
               className="text-xs text-blue-700 font-semibold"
             >
-              Forgot?
+              Forgot Password?
             </Link>
           </div>
 
-          <input
-            type="password"
-            placeholder="********"
-            className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-600"
-            {...register("password")}
-          />
+          <div className="relative mt-2">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="********"
+              autoComplete="current-password"
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
+              className="w-full rounded-lg border border-slate-200 px-4 py-3 pr-12 text-sm outline-none focus:border-blue-600"
+              {...register("password")}
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0b2a4a]"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {showPassword ? "visibility_off" : "visibility"}
+              </span>
+            </button>
+          </div>
 
           {errors.password && (
-            <p className="text-xs text-red-600 mt-1">
+            <p id="password-error" className="text-xs text-red-600 mt-1">
               {errors.password.message}
             </p>
           )}

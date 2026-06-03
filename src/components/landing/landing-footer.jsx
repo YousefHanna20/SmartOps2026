@@ -1,6 +1,6 @@
 function LandingFooter() {
   return (
-    <footer className="bg-slate-50 dark:bg-slate-950 w-full py-12 px-8">
+    <footer id="footer" className="bg-slate-50 dark:bg-slate-950 w-full py-12 px-8">
       <div className="flex flex-col md:flex-row justify-between items-center max-w-7xl mx-auto border-t border-transparent gap-8">
         <div className="flex flex-col items-center md:items-start gap-4">
           <span className="font-bold text-blue-900 text-2xl tracking-tighter">
