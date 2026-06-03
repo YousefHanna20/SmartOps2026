@@ -1,6 +1,6 @@
 function ProductPreview() {
   return (
-    <section className="max-w-7xl mx-auto px-8 mb-32">
+    <section id="preview" className="max-w-7xl mx-auto px-8 mb-32">
       <div className="flex flex-col lg:flex-row-reverse items-center gap-20">
         <div className="lg:w-2/5 space-y-6">
           <h2 className="text-4xl lg:text-5xl font-black text-primary tracking-tighter leading-tight">

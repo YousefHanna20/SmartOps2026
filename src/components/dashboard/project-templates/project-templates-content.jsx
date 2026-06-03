@@ -11,6 +11,13 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import Toast from "../../common/toast";
+import useToast from "../../../hooks/use-toast";
+import ConfirmModal from "../../common/confirm-modal";
+import EmptyState from "../../common/empty-state";
+import ErrorState from "../../common/error-state";
+import LoadingState from "../../common/loading-state";
+
 const isTodayOrFutureDate = (value) => {
   const selectedDate = new Date(value);
   const today = new Date();
@@ -32,12 +39,14 @@ const getTodayDate = () => {
 const templateSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(1, "Template name is required")
     .min(2, "Template name must be at least 2 characters")
     .max(255, "Template name must be less than 255 characters"),
 
   category: z
     .string()
+    .trim()
     .min(1, "Category is required")
     .max(255, "Category must be less than 255 characters"),
 
@@ -48,14 +57,19 @@ const templateSchema = z.object({
     .int("Estimated duration must be an integer")
     .positive("Estimated duration must be greater than 0"),
 
-  description: z.string().optional(),
+  description: z.string().trim().optional(),
 });
 
 const customRequestSchema = z.object({
-  projectName: z.string().min(1, "Project name is required"),
+  projectName: z
+    .string()
+    .trim()
+    .min(1, "Project name is required")
+    .min(2, "Project name must be at least 2 characters"),
 
   category: z
     .string()
+    .trim()
     .min(1, "Project category is required")
     .max(255, "Category must be less than 255 characters"),
 
@@ -64,7 +78,11 @@ const customRequestSchema = z.object({
     .min(1, "Deadline is required")
     .refine(isTodayOrFutureDate, "Deadline cannot be in the past"),
 
-  description: z.string().min(1, "Description is required"),
+  description: z
+    .string()
+    .trim()
+    .min(1, "Description is required")
+    .min(5, "Description must be at least 5 characters"),
 });
 
 function ProjectTemplatesContent() {
@@ -81,11 +99,14 @@ function ProjectTemplatesContent() {
   const [showCreateBox, setShowCreateBox] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [deletingTemplate, setDeletingTemplate] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [showRequestBox, setShowRequestBox] = useState(false);
 
   const [confirmingTemplate, setConfirmingTemplate] = useState(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const { toast, showToast, hideToast } = useToast();
 
   const loadTemplates = async () => {
     setLoadingTemplates(true);
@@ -128,6 +149,7 @@ function ProjectTemplatesContent() {
   };
 
   const closeDeleteBox = () => {
+    if (deleteLoading) return;
     setDeletingTemplate(null);
   };
 
@@ -153,6 +175,7 @@ function ProjectTemplatesContent() {
   };
 
   const closeUseTemplateConfirm = () => {
+    if (confirmLoading) return;
     setConfirmingTemplate(null);
   };
 
@@ -173,9 +196,10 @@ function ProjectTemplatesContent() {
       });
 
       closeUseTemplateConfirm();
-      alert("Project request submitted successfully.");
+      showToast("success", "Project request submitted successfully.");
     } catch (error) {
-      alert(
+      showToast(
+        "error",
         error.response?.data?.message || "Failed to submit project request."
       );
     } finally {
@@ -186,14 +210,26 @@ function ProjectTemplatesContent() {
   const handleDeleteTemplate = async () => {
     if (!deletingTemplate) return;
 
+    setDeleteLoading(true);
+
     try {
       await deleteTemplate(deletingTemplate.template_id);
-      closeDeleteBox();
-      await loadTemplates();
+
+      setTemplates((prevTemplates) =>
+        prevTemplates.filter(
+          (template) => template.template_id !== deletingTemplate.template_id
+        )
+      );
+
+      showToast("success", "Project template deleted successfully.");
+      setDeletingTemplate(null);
     } catch (error) {
-      alert(
+      showToast(
+        "error",
         error.response?.data?.message || "Failed to delete project template."
       );
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -207,6 +243,7 @@ function ProjectTemplatesContent() {
       setError,
     } = useForm({
       resolver: zodResolver(templateSchema),
+      mode: "onBlur",
       defaultValues: {
         name: template?.name || "",
         category: template?.category || "",
@@ -218,16 +255,18 @@ function ProjectTemplatesContent() {
     const onSubmit = async (formData) => {
       try {
         const payload = {
-          name: formData.name,
-          category: formData.category,
+          name: formData.name.trim(),
+          category: formData.category.trim(),
           estimated_duration: Number(formData.estimated_duration),
-          description: formData.description || "",
+          description: formData.description?.trim() || "",
         };
 
         if (isEditMode) {
           await updateTemplate(template.template_id, payload);
+          showToast("success", "Template updated successfully.");
         } else {
           await createTemplate(payload);
+          showToast("success", "Template created successfully.");
         }
 
         onClose();
@@ -242,13 +281,19 @@ function ProjectTemplatesContent() {
               message: err.message,
             });
           });
+
+          showToast("error", "Please check the form and try again.");
         } else {
+          const message =
+            responseData?.message ||
+            `Failed to ${isEditMode ? "update" : "create"} template.`;
+
           setError("root", {
             type: "server",
-            message:
-              responseData?.message ||
-              `Failed to ${isEditMode ? "update" : "create"} template.`,
+            message,
           });
+
+          showToast("error", message);
         }
       }
     };
@@ -272,7 +317,8 @@ function ProjectTemplatesContent() {
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600 transition flex items-center justify-center"
+              disabled={isSubmitting}
+              className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600 transition flex items-center justify-center disabled:opacity-60"
             >
               ✕
             </button>
@@ -287,11 +333,15 @@ function ProjectTemplatesContent() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                <label
+                  htmlFor="template-name"
+                  className="text-xs font-bold uppercase tracking-widest text-slate-400"
+                >
                   Template Name
                 </label>
 
                 <input
+                  id="template-name"
                   type="text"
                   placeholder="Enter template name"
                   className="mt-2 w-full bg-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#082b4f]"
@@ -306,11 +356,15 @@ function ProjectTemplatesContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                <label
+                  htmlFor="template-category"
+                  className="text-xs font-bold uppercase tracking-widest text-slate-400"
+                >
                   Category
                 </label>
 
                 <select
+                  id="template-category"
                   className="mt-2 w-full bg-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#082b4f]"
                   {...register("category")}
                 >
@@ -335,11 +389,15 @@ function ProjectTemplatesContent() {
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              <label
+                htmlFor="estimated-duration"
+                className="text-xs font-bold uppercase tracking-widest text-slate-400"
+              >
                 Estimated Duration
               </label>
 
               <input
+                id="estimated-duration"
                 type="number"
                 min="1"
                 placeholder="e.g. 90"
@@ -359,11 +417,15 @@ function ProjectTemplatesContent() {
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              <label
+                htmlFor="template-description"
+                className="text-xs font-bold uppercase tracking-widest text-slate-400"
+              >
                 Description
               </label>
 
               <textarea
+                id="template-description"
                 placeholder="Describe the template purpose, workflow, and expected use..."
                 className="mt-2 w-full h-32 bg-slate-100 rounded-xl px-4 py-3 text-sm outline-none resize-none focus:ring-2 focus:ring-[#082b4f]"
                 {...register("description")}
@@ -380,7 +442,8 @@ function ProjectTemplatesContent() {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200 transition"
+                disabled={isSubmitting}
+                className="px-6 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200 transition disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -414,6 +477,7 @@ function ProjectTemplatesContent() {
       setError,
     } = useForm({
       resolver: zodResolver(customRequestSchema),
+      mode: "onBlur",
       defaultValues: {
         projectName: "",
         category: "",
@@ -425,17 +489,17 @@ function ProjectTemplatesContent() {
     const onSubmit = async (formData) => {
       try {
         await createProjectRequest({
-          project_name: formData.projectName,
-          category: formData.category,
+          project_name: formData.projectName.trim(),
+          category: formData.category.trim(),
           deadline: formData.deadline,
-          description: formData.description,
+          description: formData.description.trim(),
           template_id: null,
         });
 
         reset();
         closeRequestBox();
 
-        alert("Custom project request submitted successfully.");
+        showToast("success", "Custom project request submitted successfully.");
       } catch (error) {
         const responseData = error.response?.data;
 
@@ -446,12 +510,18 @@ function ProjectTemplatesContent() {
               message: err.message,
             });
           });
+
+          showToast("error", "Please check the form and try again.");
         } else {
+          const message =
+            responseData?.message || "Failed to submit project request.";
+
           setError("root", {
             type: "server",
-            message:
-              responseData?.message || "Failed to submit project request.",
+            message,
           });
+
+          showToast("error", message);
         }
       }
     };
@@ -473,7 +543,8 @@ function ProjectTemplatesContent() {
             <button
               type="button"
               onClick={closeRequestBox}
-              className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600 transition flex items-center justify-center"
+              disabled={isSubmitting}
+              className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600 transition flex items-center justify-center disabled:opacity-60"
             >
               ✕
             </button>
@@ -487,11 +558,15 @@ function ProjectTemplatesContent() {
             )}
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              <label
+                htmlFor="custom-project-name"
+                className="text-xs font-bold uppercase tracking-widest text-slate-400"
+              >
                 Project Name
               </label>
 
               <input
+                id="custom-project-name"
                 type="text"
                 placeholder="Enter project name"
                 className="mt-2 w-full bg-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#082b4f]"
@@ -506,11 +581,15 @@ function ProjectTemplatesContent() {
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              <label
+                htmlFor="custom-category"
+                className="text-xs font-bold uppercase tracking-widest text-slate-400"
+              >
                 Project Category
               </label>
 
               <select
+                id="custom-category"
                 className="mt-2 w-full bg-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#082b4f]"
                 {...register("category")}
               >
@@ -534,11 +613,15 @@ function ProjectTemplatesContent() {
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              <label
+                htmlFor="custom-deadline"
+                className="text-xs font-bold uppercase tracking-widest text-slate-400"
+              >
                 Deadline
               </label>
 
               <input
+                id="custom-deadline"
                 type="date"
                 min={getTodayDate()}
                 className="mt-2 w-full bg-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#082b4f]"
@@ -553,11 +636,15 @@ function ProjectTemplatesContent() {
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              <label
+                htmlFor="custom-description"
+                className="text-xs font-bold uppercase tracking-widest text-slate-400"
+              >
                 Description
               </label>
 
               <textarea
+                id="custom-description"
                 placeholder="Describe the project requirements, goals, and constraints..."
                 className="mt-2 w-full h-32 bg-slate-100 rounded-xl px-4 py-3 text-sm outline-none resize-none focus:ring-2 focus:ring-[#082b4f]"
                 {...register("description")}
@@ -584,7 +671,8 @@ function ProjectTemplatesContent() {
               <button
                 type="button"
                 onClick={closeRequestBox}
-                className="px-6 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200 transition"
+                disabled={isSubmitting}
+                className="px-6 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200 transition disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -603,97 +691,42 @@ function ProjectTemplatesContent() {
     );
   };
 
-  const UseTemplateConfirmModal = () => (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
-      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 p-7">
-        <div className="w-12 h-12 rounded-full bg-blue-100 text-[#082b4f] flex items-center justify-center mb-5">
-          <span className="material-symbols-outlined">layers</span>
-        </div>
-
-        <h3 className="text-2xl font-black text-[#0b2a4a]">
-          Use This Template?
-        </h3>
-
-        <p className="text-slate-500 mt-3 leading-7">
-          Are you sure you want to request a project using{" "}
-          <span className="font-bold text-[#0b2a4a]">
-            {confirmingTemplate?.name}
-          </span>
-          ?
-        </p>
-
-        {confirmingTemplate?.category && (
-          <p className="text-xs text-slate-400 mt-2">
-            Category:{" "}
-            <span className="font-bold">{confirmingTemplate.category}</span>
-          </p>
-        )}
-
-        <div className="flex justify-end gap-3 mt-7">
-          <button
-            type="button"
-            onClick={closeUseTemplateConfirm}
-            disabled={confirmLoading}
-            className="px-5 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200 transition disabled:opacity-60"
-          >
-            No
-          </button>
-
-          <button
-            type="button"
-            onClick={handleConfirmUseTemplate}
-            disabled={confirmLoading}
-            className="px-5 py-3 rounded-xl bg-[#082b4f] text-white font-bold text-sm hover:opacity-90 transition disabled:opacity-60"
-          >
-            {confirmLoading ? "Submitting..." : "Yes"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const DeleteConfirmModal = () => (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
-      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 p-7">
-        <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-5">
-          <span className="material-symbols-outlined">delete</span>
-        </div>
-
-        <h3 className="text-2xl font-black text-[#0b2a4a]">
-          Confirm Deletion
-        </h3>
-
-        <p className="text-slate-500 mt-3 leading-7">
-          Are you sure you want to delete{" "}
-          <span className="font-bold text-[#0b2a4a]">
-            {deletingTemplate?.name}
-          </span>
-          ? This action cannot be undone.
-        </p>
-
-        <div className="flex justify-end gap-3 mt-7">
-          <button
-            type="button"
-            onClick={closeDeleteBox}
-            className="px-5 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200 transition"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            onClick={handleDeleteTemplate}
-            className="px-5 py-3 rounded-xl bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition"
-          >
-            Confirm Deletion
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div>
+      <Toast type={toast.type} message={toast.message} onClose={hideToast} />
+
+      <ConfirmModal
+        isOpen={!!confirmingTemplate}
+        title="Use this template?"
+        description={
+          confirmingTemplate
+            ? `Are you sure you want to request a project using "${confirmingTemplate.name}"?`
+            : ""
+        }
+        confirmLabel="Use Template"
+        cancelLabel="Cancel"
+        type="info"
+        loading={confirmLoading}
+        onConfirm={handleConfirmUseTemplate}
+        onCancel={closeUseTemplateConfirm}
+      />
+
+      <ConfirmModal
+        isOpen={!!deletingTemplate}
+        title="Delete template?"
+        description={
+          deletingTemplate
+            ? `Are you sure you want to delete "${deletingTemplate.name}"? This action cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete Template"
+        cancelLabel="Cancel"
+        type="danger"
+        loading={deleteLoading}
+        onConfirm={handleDeleteTemplate}
+        onCancel={closeDeleteBox}
+      />
+
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">
@@ -750,11 +783,7 @@ function ProjectTemplatesContent() {
         />
       )}
 
-      {deletingTemplate && <DeleteConfirmModal />}
-
       {showRequestBox && <CustomRequestModal />}
-
-      {confirmingTemplate && <UseTemplateConfirmModal />}
 
       {isAdmin && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
@@ -782,14 +811,19 @@ function ProjectTemplatesContent() {
       )}
 
       {loadingTemplates && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 mt-8 text-slate-500">
-          Loading templates...
+        <div className="mt-8">
+          <LoadingState type="table" rows={4} />
         </div>
       )}
 
-      {templatesError && (
-        <div className="bg-red-50 rounded-2xl p-6 border border-red-200 mt-8 text-red-600">
-          {templatesError}
+      {templatesError && !loadingTemplates && (
+        <div className="mt-8">
+          <ErrorState
+            title="Failed to load templates"
+            message={templatesError}
+            actionLabel="Try Again"
+            onAction={loadTemplates}
+          />
         </div>
       )}
 
@@ -816,9 +850,17 @@ function ProjectTemplatesContent() {
           </div>
 
           {templates.length === 0 && (
-            <div className="px-6 py-10 text-center text-slate-400">
-              No project templates found.
-            </div>
+            <EmptyState
+              icon="layers"
+              title="No project templates found"
+              description={
+                isAdmin
+                  ? "Create your first project template so clients can request projects faster."
+                  : "Templates will appear here once the admin adds them."
+              }
+              actionLabel={isAdmin ? "Create First Template" : undefined}
+              onAction={isAdmin ? openCreateBox : undefined}
+            />
           )}
 
           {templates.map((template) => (

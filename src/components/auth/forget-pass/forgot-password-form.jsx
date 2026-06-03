@@ -3,11 +3,14 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+
 import { forgotPassword } from "../../../services/user-service";
+import { handleApiError } from "../../../utils/handle-api-error";
 
 const forgotPasswordSchema = z.object({
   email: z
     .string()
+    .trim()
     .min(1, "Email is required")
     .email("Please enter a valid email address"),
 });
@@ -23,6 +26,7 @@ function ForgotPasswordForm() {
     setError,
   } = useForm({
     resolver: zodResolver(forgotPasswordSchema),
+    mode: "onBlur",
     defaultValues: {
       email: "",
     },
@@ -32,37 +36,24 @@ function ForgotPasswordForm() {
     setSuccess("");
 
     try {
-      const data = await forgotPassword(formData.email);
+      const cleanEmail = formData.email.trim();
+
+      const data = await forgotPassword(cleanEmail);
 
       setSuccess(data.message || "OTP sent to your email successfully");
 
-      localStorage.setItem("resetEmail", formData.email);
+      sessionStorage.setItem("resetEmail", cleanEmail);
 
       setTimeout(() => {
         navigate("/otp");
-      }, 1000);
+      }, 1800);
     } catch (error) {
-      const responseData = error.response?.data;
-
-      if (responseData?.errors) {
-        responseData.errors.forEach((err) => {
-          setError(err.field || "root", {
-            type: "server",
-            message: err.message,
-          });
-        });
-      } else {
-        setError("root", {
-          type: "server",
-          message:
-            responseData?.message || "Failed to send OTP. Please try again.",
-        });
-      }
+      handleApiError(error, setError, "Failed to send OTP. Please try again.");
     }
   };
 
   return (
-    <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8">
+    <div className="w-full max-w-sm">
       <h2 className="text-2xl font-bold text-slate-900 text-center">
         Forgot Password
       </h2>
@@ -85,19 +76,26 @@ function ForgotPasswordForm() {
         )}
 
         <div>
-          <label className="text-xs font-semibold text-slate-600">
+          <label
+            htmlFor="email"
+            className="text-xs font-semibold text-slate-600"
+          >
             Email Address
           </label>
 
           <input
+            id="email"
             type="email"
             placeholder="name@company.com"
+            autoComplete="email"
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "email-error" : undefined}
             className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-600"
             {...register("email")}
           />
 
           {errors.email && (
-            <p className="text-xs text-red-600 mt-1">
+            <p id="email-error" className="text-xs text-red-600 mt-1">
               {errors.email.message}
             </p>
           )}
@@ -108,7 +106,7 @@ function ForgotPasswordForm() {
           disabled={isSubmitting}
           className="w-full bg-[#0b2a4a] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#123b66] disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? "Sending OTP..." : "Send OTP →"}
+          {isSubmitting ? "Sending OTP..." : "Send OTP"}
         </button>
       </form>
 

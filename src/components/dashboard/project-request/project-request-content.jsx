@@ -6,15 +6,22 @@ import {
   rejectProjectRequest,
   deleteProjectRequest,
 } from "../../../services/project-request-service";
-import requestStatsImg from "../../../assets/nexus-wing.png";
 
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import Toast from "../../common/toast";
+import useToast from "../../../hooks/use-toast";
+import ConfirmModal from "../../common/confirm-modal";
+import EmptyState from "../../common/empty-state";
+import ErrorState from "../../common/error-state";
+import LoadingState from "../../common/loading-state";
+
 const rejectRequestSchema = z.object({
   rejection_reason: z
     .string()
+    .trim()
     .min(1, "Rejection reason is required")
     .min(2, "Rejection reason must be at least 2 characters"),
 });
@@ -30,8 +37,15 @@ function ProjectRequestContent() {
   const [loadingRequests, setLoadingRequests] = useState(true);
   const [requestsError, setRequestsError] = useState("");
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const [rejectingRequest, setRejectingRequest] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [deletingRequest, setDeletingRequest] = useState(null);
+  const [approvingRequest, setApprovingRequest] = useState(null);
+
+  const { toast, showToast, hideToast } = useToast();
 
   const getRequestId = (request) => {
     return request.request_id || request.id;
@@ -68,7 +82,7 @@ function ProjectRequestContent() {
   };
 
   const normalizeStatus = (status) => {
-    return String(status).toLowerCase();
+    return String(status || "pending").toLowerCase();
   };
 
   const getStatusStyle = (status) => {
@@ -114,45 +128,108 @@ function ProjectRequestContent() {
     loadRequests();
   }, []);
 
+  const filteredRequests = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return requests.filter((request) => {
+      const status = normalizeStatus(getStatus(request));
+
+      const matchesSearch =
+        !query ||
+        [
+          getRequestId(request),
+          getProjectName(request),
+          getClientName(request),
+          getCategory(request),
+          getTemplateName(request),
+          request.description,
+          request.deadline,
+          request.rejection_reason,
+          status,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+
+      const matchesStatus = statusFilter === "all" || status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [requests, searchQuery, statusFilter]);
+
   const pendingRequests = useMemo(() => {
-    return requests.filter(
+    return filteredRequests.filter(
       (request) => normalizeStatus(getStatus(request)) === "pending"
     );
-  }, [requests]);
+  }, [filteredRequests]);
 
   const approvedRequests = useMemo(() => {
-    return requests.filter(
+    return filteredRequests.filter(
       (request) => normalizeStatus(getStatus(request)) === "approved"
     );
-  }, [requests]);
+  }, [filteredRequests]);
 
   const rejectedRequests = useMemo(() => {
-    return requests.filter(
+    return filteredRequests.filter(
       (request) => normalizeStatus(getStatus(request)) === "rejected"
     );
-  }, [requests]);
+  }, [filteredRequests]);
 
   const reviewedRequests = useMemo(() => {
     return [...approvedRequests, ...rejectedRequests];
   }, [approvedRequests, rejectedRequests]);
 
+  const totalApprovedRequests = useMemo(() => {
+    return requests.filter(
+      (request) => normalizeStatus(getStatus(request)) === "approved"
+    );
+  }, [requests]);
+
   const approvalRate = useMemo(() => {
-    if (requests.length === 0) return "0%";
+    if (filteredRequests.length === 0) return "0%";
 
-    const rate = Math.round((approvedRequests.length / requests.length) * 100);
+    const rate = Math.round(
+      (approvedRequests.length / filteredRequests.length) * 100
+    );
+
     return `${rate}%`;
-  }, [requests.length, approvedRequests.length]);
+  }, [filteredRequests.length, approvedRequests.length]);
 
-  const handleApprove = async (request) => {
-    const requestId = getRequestId(request);
+  const hasActiveFilters = searchQuery || statusFilter !== "all";
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+  };
+
+  const openApproveRequestModal = (request) => {
+    setApprovingRequest(request);
+  };
+
+  const closeApproveRequestModal = () => {
+    if (actionLoadingId) return;
+    setApprovingRequest(null);
+  };
+
+  const confirmApproveRequest = async () => {
+    if (!approvingRequest) return;
+
+    const requestId = getRequestId(approvingRequest);
 
     setActionLoadingId(requestId);
 
     try {
       await approveProjectRequest(requestId);
       await loadRequests();
+
+      setApprovingRequest(null);
+      showToast("success", "Project request approved successfully.");
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to approve request.");
+      showToast(
+        "error",
+        error.response?.data?.message || "Failed to approve request."
+      );
     } finally {
       setActionLoadingId(null);
     }
@@ -163,25 +240,40 @@ function ProjectRequestContent() {
   };
 
   const handleCancelReject = () => {
+    if (actionLoadingId) return;
     setRejectingRequest(null);
   };
 
-  const handleDelete = async (request) => {
-    const requestId = getRequestId(request);
+  const openDeleteRequestModal = (request) => {
+    setDeletingRequest(request);
+  };
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${getProjectName(request)}"?`
-    );
+  const closeDeleteRequestModal = () => {
+    if (actionLoadingId) return;
+    setDeletingRequest(null);
+  };
 
-    if (!confirmed) return;
+  const confirmDeleteRequest = async () => {
+    if (!deletingRequest) return;
+
+    const requestId = getRequestId(deletingRequest);
 
     setActionLoadingId(requestId);
 
     try {
       await deleteProjectRequest(requestId);
-      await loadRequests();
+
+      setRequests((prevRequests) =>
+        prevRequests.filter((request) => getRequestId(request) !== requestId)
+      );
+
+      setDeletingRequest(null);
+      showToast("success", "Project request deleted successfully.");
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to delete request.");
+      showToast(
+        "error",
+        error.response?.data?.message || "Failed to delete request."
+      );
     } finally {
       setActionLoadingId(null);
     }
@@ -199,6 +291,7 @@ function ProjectRequestContent() {
       reset,
     } = useForm({
       resolver: zodResolver(rejectRequestSchema),
+      mode: "onBlur",
       defaultValues: {
         rejection_reason: "",
       },
@@ -217,6 +310,8 @@ function ProjectRequestContent() {
         setRejectingRequest(null);
 
         await loadRequests();
+
+        showToast("success", "Project request rejected successfully.");
       } catch (error) {
         const responseData = error.response?.data;
 
@@ -227,12 +322,18 @@ function ProjectRequestContent() {
               message: err.message,
             });
           });
+
+          showToast("error", "Please check the rejection reason.");
         } else {
+          const message =
+            responseData?.message || "Failed to reject project request.";
+
           setError("root", {
             type: "server",
-            message:
-              responseData?.message || "Failed to reject project request.",
+            message,
           });
+
+          showToast("error", message);
         }
       } finally {
         setActionLoadingId(null);
@@ -242,36 +343,40 @@ function ProjectRequestContent() {
     return (
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="mt-4 bg-red-50 border border-red-100 rounded-xl p-4"
+        className="mt-5 bg-red-50 border border-red-100 rounded-2xl p-5"
       >
         {errors.root && (
-          <div className="rounded-lg bg-white border border-red-200 px-4 py-3 text-sm text-red-600 mb-3">
+          <div className="rounded-xl bg-white border border-red-200 px-4 py-3 text-sm text-red-600 mb-4">
             {errors.root.message}
           </div>
         )}
 
-        <label className="text-xs font-bold uppercase tracking-widest text-red-400">
+        <label
+          htmlFor={`rejection-reason-${requestId}`}
+          className="text-xs font-black uppercase tracking-widest text-red-400"
+        >
           Reason for Rejection
         </label>
 
         <textarea
-          className="mt-3 w-full h-24 bg-white border border-red-100 rounded-lg px-4 py-3 text-sm outline-none resize-none focus:border-red-400"
+          id={`rejection-reason-${requestId}`}
+          className="mt-3 w-full h-28 bg-white border border-red-100 rounded-xl px-4 py-3 text-base outline-none resize-none focus:border-red-400"
           placeholder="Provide a clear reason for rejecting this request..."
           {...register("rejection_reason")}
         />
 
         {errors.rejection_reason && (
-          <p className="text-xs text-red-600 mt-1">
+          <p className="text-xs text-red-600 mt-2 font-semibold">
             {errors.rejection_reason.message}
           </p>
         )}
 
-        <div className="flex justify-end gap-2 mt-3">
+        <div className="flex justify-end gap-3 mt-4">
           <button
             type="button"
             onClick={handleCancelReject}
             disabled={isSubmitting || isActionLoading}
-            className="px-4 py-2 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 hover:scale-105 transition duration-200 disabled:opacity-60"
+            className="px-5 py-3 rounded-xl text-sm font-black bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 transition disabled:opacity-60"
           >
             Cancel
           </button>
@@ -279,7 +384,7 @@ function ProjectRequestContent() {
           <button
             type="submit"
             disabled={isSubmitting || isActionLoading}
-            className="px-4 py-2 rounded-lg text-xs font-bold bg-red-600 text-white hover:scale-105 transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="px-5 py-3 rounded-xl text-sm font-black bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting || isActionLoading
               ? "Rejecting..."
@@ -302,16 +407,16 @@ function ProjectRequestContent() {
     const isActionLoading = actionLoadingId === requestId;
 
     return (
-      <div className="border border-slate-100 rounded-xl p-4">
-        <div className="flex flex-col md:flex-row justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-bold text-[#0b2a4a]">
+      <div className="border border-slate-100 rounded-2xl p-6 hover:bg-slate-50/60 transition">
+        <div className="flex flex-col xl:flex-row justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="font-black text-[#0b2a4a] text-xl leading-7">
                 {getProjectName(request)}
               </p>
 
               <span
-                className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${getStatusStyle(
+                className={`px-4 py-2 rounded-full text-xs font-black uppercase ${getStatusStyle(
                   status
                 )}`}
               >
@@ -319,64 +424,49 @@ function ProjectRequestContent() {
               </span>
             </div>
 
-            <p className="text-xs text-slate-400 mt-1">
-              Client:{" "}
-              <span className="font-semibold">{getClientName(request)}</span>
-            </p>
-
-            <p className="text-xs text-slate-500 mt-2">
-              Category:{" "}
-              <span className="font-semibold">{getCategory(request)}</span>
-            </p>
-
-            <p className="text-xs text-slate-500 mt-1">
-              Template:{" "}
-              <span className="font-semibold">{getTemplateName(request)}</span>
-            </p>
-
-            <p className="text-xs text-slate-500 mt-1">
-              Deadline:{" "}
-              <span className="font-semibold">
-                {request.deadline || "Not set"}
-              </span>
-            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mt-4">
+              <InfoLine label="Client" value={getClientName(request)} />
+              <InfoLine label="Category" value={getCategory(request)} />
+              <InfoLine label="Template" value={getTemplateName(request)} />
+              <InfoLine label="Deadline" value={request.deadline || "Not set"} />
+            </div>
 
             {request.description && (
-              <p className="text-xs text-slate-400 mt-3 max-w-2xl leading-6">
+              <p className="text-base text-slate-500 mt-5 max-w-4xl leading-7">
                 {request.description}
               </p>
             )}
 
             {normalizedStatus === "rejected" && request.rejection_reason && (
-              <div className="mt-3 bg-red-50 border border-red-100 rounded-lg p-3">
-                <p className="text-xs font-bold text-red-500">
+              <div className="mt-5 bg-red-50 border border-red-100 rounded-2xl p-4">
+                <p className="text-xs font-black uppercase tracking-widest text-red-500">
                   Rejection Reason
                 </p>
 
-                <p className="text-xs text-red-600 mt-1">
+                <p className="text-sm text-red-600 mt-2 leading-6">
                   {request.rejection_reason}
                 </p>
               </div>
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2 h-fit">
+          <div className="flex flex-wrap gap-3 h-fit shrink-0">
             {isAdmin && normalizedStatus === "pending" && (
               <>
                 <button
                   type="button"
                   onClick={() => handleRejectClick(request)}
                   disabled={isActionLoading}
-                  className="px-4 py-2 rounded-lg text-xs font-bold text-[#0b2a4a] bg-slate-100 hover:text-red-600 hover:scale-105 transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-5 py-3 rounded-xl text-sm font-black text-[#0b2a4a] bg-slate-100 hover:text-red-600 hover:bg-red-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   Reject
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleApprove(request)}
+                  onClick={() => openApproveRequestModal(request)}
                   disabled={isActionLoading}
-                  className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-[#082b4f] hover:bg-[#061f39] hover:scale-105 transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-5 py-3 rounded-xl text-sm font-black text-white bg-[#082b4f] hover:bg-[#061f39] transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isActionLoading ? "Processing..." : "Approve"}
                 </button>
@@ -386,9 +476,9 @@ function ProjectRequestContent() {
             {isClient && normalizedStatus === "pending" && (
               <button
                 type="button"
-                onClick={() => handleDelete(request)}
+                onClick={() => openDeleteRequestModal(request)}
                 disabled={isActionLoading}
-                className="px-4 py-2 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 hover:scale-105 transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-5 py-3 rounded-xl text-sm font-black text-red-600 bg-red-50 hover:bg-red-100 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Delete
               </button>
@@ -401,122 +491,327 @@ function ProjectRequestContent() {
     );
   };
 
+  if (loadingRequests) {
+    return <LoadingState type="table" rows={4} />;
+  }
+
+  if (requestsError) {
+    return (
+      <ErrorState
+        title="Failed to load requests"
+        message={requestsError}
+        actionLabel="Try Again"
+        onAction={loadRequests}
+      />
+    );
+  }
+
   return (
     <div>
-      <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">
+      <Toast type={toast.type} message={toast.message} onClose={hideToast} />
+
+      <ConfirmModal
+        isOpen={!!approvingRequest}
+        title="Approve request?"
+        description={
+          approvingRequest
+            ? `Are you sure you want to approve "${getProjectName(
+                approvingRequest
+              )}"? This will convert the request into an active project.`
+            : ""
+        }
+        confirmLabel="Approve Request"
+        cancelLabel="Cancel"
+        type="info"
+        loading={!!actionLoadingId && !!approvingRequest}
+        onConfirm={confirmApproveRequest}
+        onCancel={closeApproveRequestModal}
+      />
+
+      <ConfirmModal
+        isOpen={!!deletingRequest}
+        title="Delete request?"
+        description={
+          deletingRequest
+            ? `Are you sure you want to delete "${getProjectName(
+                deletingRequest
+              )}"? This action cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete Request"
+        cancelLabel="Cancel"
+        type="danger"
+        loading={!!actionLoadingId && !!deletingRequest}
+        onConfirm={confirmDeleteRequest}
+        onCancel={closeDeleteRequestModal}
+      />
+
+      <p className="text-xs uppercase tracking-widest text-slate-400 font-black">
         Strategic Operations
       </p>
 
       <div className="flex flex-col md:flex-row justify-between gap-4 mt-2">
         <div>
-          <h2 className="text-4xl font-black text-[#0b2a4a]">Requests</h2>
+          <h2 className="text-4xl font-black text-[#0b2a4a] tracking-tight">
+            Requests
+          </h2>
 
-          <p className="text-slate-500 max-w-xl mt-3">
-            Manage project intakes and system proposals. Clients can submit
-            detailed requests, while administrators review approvals and
-            allocation.
+          <p className="text-base text-slate-500 max-w-2xl mt-4 leading-7">
+            Showing{" "}
+            <span className="font-black text-[#0b2a4a]">
+              {filteredRequests.length}
+            </span>{" "}
+            of{" "}
+            <span className="font-black text-[#0b2a4a]">
+              {requests.length}
+            </span>{" "}
+            project requests.
           </p>
         </div>
 
         <button
           type="button"
           onClick={loadRequests}
-          className="bg-slate-100 text-[#082b4f] rounded-lg px-6 py-3 font-bold text-sm h-fit hover:bg-slate-200 transition"
+          className="bg-slate-100 text-[#082b4f] rounded-xl px-6 py-3 font-black text-sm h-fit hover:bg-slate-200 transition flex items-center gap-2"
         >
+          <span className="material-symbols-outlined text-[18px]">
+            refresh
+          </span>
           Refresh
         </button>
       </div>
 
-      {loadingRequests && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mt-10 text-slate-500">
-          Loading requests...
-        </div>
-      )}
+      <div className="bg-white rounded-2xl border border-slate-100 p-5 mt-8 shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-4 items-end">
+          <div>
+            <label
+              htmlFor="request-search"
+              className="block text-xs uppercase tracking-widest text-slate-400 font-black mb-2"
+            >
+              Search Requests
+            </label>
 
-      {requestsError && (
-        <div className="bg-red-50 rounded-2xl p-6 shadow-sm border border-red-200 mt-10 text-red-600">
-          {requestsError}
-        </div>
-      )}
+            <div className="relative">
+              <input
+                id="request-search"
+                type="text"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search by project name, client, category, template, status, or description..."
+                className="w-full bg-slate-100 rounded-xl px-4 py-3 pl-11 text-sm outline-none border border-transparent focus:border-[#082b4f]"
+              />
 
-      {!loadingRequests && !requestsError && (
-        <div className="grid grid-cols-1 gap-6 mt-10">
-          <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="font-black text-[#0b2a4a]">
-                  {isAdmin ? "Pending Approval" : "Pending Requests"}
-                </h3>
-
-                <p className="text-xs text-slate-400 uppercase tracking-widest">
-                  {isAdmin ? "Administrator Console" : "Client Console"}
-                </p>
-              </div>
-
-              <span className="material-symbols-outlined text-slate-400">
-                filter_list
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">
+                search
               </span>
-            </div>
 
-            <div className="space-y-4">
-              {pendingRequests.length === 0 && (
-                <div className="text-center text-slate-400 py-10">
-                  No pending project requests found.
-                </div>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 transition"
+                >
+                  ✕
+                </button>
               )}
-
-              {pendingRequests.map((request) => (
-                <RequestCard key={getRequestId(request)} request={request} />
-              ))}
             </div>
-          </section>
-        </div>
-      )}
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 mt-6">
+          <div>
+            <label
+              htmlFor="request-status-filter"
+              className="block text-xs uppercase tracking-widest text-slate-400 font-black mb-2"
+            >
+              Status
+            </label>
+
+            <select
+              id="request-status-filter"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="w-full bg-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none border border-transparent focus:border-[#082b4f]"
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="px-5 py-3 rounded-xl bg-slate-100 text-[#082b4f] text-sm font-black hover:bg-slate-200 transition flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              restart_alt
+            </span>
+            Reset
+          </button>
+        </div>
+
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {searchQuery && (
+              <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-black">
+                Search: {searchQuery}
+              </span>
+            )}
+
+            {statusFilter !== "all" && (
+              <span className="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 text-xs font-black">
+                Status: {formatStatus(statusFilter)}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 mt-8">
+        <section className="bg-white rounded-2xl p-7 shadow-sm border border-slate-100">
+          <div className="flex justify-between items-start mb-7">
+            <div>
+              <h3 className="font-black text-[#0b2a4a] text-2xl">
+                {isAdmin ? "Pending Approval" : "Pending Requests"}
+              </h3>
+
+              <p className="text-sm text-slate-400 uppercase tracking-widest mt-1 font-black">
+                {isAdmin ? "Administrator Console" : "Client Console"}
+              </p>
+            </div>
+
+            <span className="material-symbols-outlined text-slate-400 text-3xl">
+              filter_list
+            </span>
+          </div>
+
+          <div className="space-y-5">
+            {pendingRequests.length === 0 && (
+              <EmptyState
+                icon="pending_actions"
+                title="No pending requests"
+                description={
+                  hasActiveFilters
+                    ? "No pending requests match your current search or filters."
+                    : isAdmin
+                    ? "Client project requests will appear here for approval."
+                    : "Your pending project requests will appear here."
+                }
+              />
+            )}
+
+            {pendingRequests.map((request) => (
+              <RequestCard key={getRequestId(request)} request={request} />
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 mt-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            ["Total Requests", requests.length],
+            ["Visible Requests", filteredRequests.length],
             ["Pending", pendingRequests.length],
             ["Approval Rate", approvalRate],
           ].map(([label, value]) => (
             <div
               key={label}
-              className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm"
+              className="bg-white rounded-2xl p-7 border border-slate-100 shadow-sm"
             >
-              <p className="text-xs uppercase tracking-widest text-slate-400">
+              <p className="text-xs uppercase tracking-widest text-slate-400 font-black">
                 {label}
               </p>
 
-              <h3 className="text-3xl font-black text-[#0b2a4a] mt-2">
+              <h3 className="text-4xl font-black text-[#0b2a4a] mt-3">
                 {value}
               </h3>
             </div>
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex items-center justify-center p-4">
-          <img
-            src={requestStatsImg}
-            alt="Project request visual"
-            className="w-full h-full object-contain"
-          />
+        <div className="bg-[#082b4f] rounded-2xl border border-slate-100 shadow-sm p-7 text-white overflow-hidden relative">
+          <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+
+          <div className="relative z-10">
+            <p className="text-xs uppercase tracking-widest text-blue-200 font-black">
+              Request Flow
+            </p>
+
+            <h3 className="text-3xl font-black mt-4">
+              {pendingRequests.length} Pending Review
+            </h3>
+
+            <p className="text-base text-blue-100 leading-7 mt-4">
+              Project requests are reviewed by admins. Approved requests become
+              active projects, while rejected requests remain visible with a
+              rejection reason.
+            </p>
+
+            <div className="grid grid-cols-3 gap-3 mt-7">
+              <RequestFlowStat
+                label="Approved"
+                value={approvedRequests.length}
+              />
+              <RequestFlowStat
+                label="Rejected"
+                value={rejectedRequests.length}
+              />
+              <RequestFlowStat label="Rate" value={approvalRate} />
+            </div>
+          </div>
         </div>
       </div>
 
-      {!loadingRequests && !requestsError && reviewedRequests.length > 0 && (
-        <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mt-6">
-          <h3 className="font-black text-[#0b2a4a] mb-4">
+      {reviewedRequests.length > 0 && (
+        <section className="bg-white rounded-2xl p-7 shadow-sm border border-slate-100 mt-6">
+          <h3 className="font-black text-[#0b2a4a] text-2xl mb-6">
             Reviewed Requests
           </h3>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             {reviewedRequests.map((request) => (
               <RequestCard key={getRequestId(request)} request={request} />
             ))}
           </div>
         </section>
       )}
+
+      {filteredRequests.length === 0 && (
+        <section className="bg-white rounded-2xl p-7 shadow-sm border border-slate-100 mt-6">
+          <EmptyState
+            icon="approval"
+            title="No matching requests found"
+            description={
+              hasActiveFilters
+                ? "Try changing the search text or resetting the filters."
+                : isAdmin
+                ? "When clients submit project requests, they will appear here."
+                : "You can submit a request from the Templates page using a template or custom project request."
+            }
+          />
+        </section>
+      )}
+    </div>
+  );
+}
+
+function InfoLine({ label, value }) {
+  return (
+    <p className="text-sm text-slate-500 leading-6">
+      <span className="font-black text-slate-400">{label}:</span>{" "}
+      <span className="font-bold text-slate-600">{value}</span>
+    </p>
+  );
+}
+
+function RequestFlowStat({ label, value }) {
+  return (
+    <div className="bg-white/10 rounded-xl p-3">
+      <p className="text-[10px] uppercase text-blue-200 font-black">
+        {label}
+      </p>
+
+      <h4 className="text-2xl font-black mt-1">{value}</h4>
     </div>
   );
 }

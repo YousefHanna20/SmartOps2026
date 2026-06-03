@@ -1,23 +1,62 @@
+import { useAuth } from "../../../../context/auth-context";
+
 function ProjectsHeader() {
+  const { user } = useAuth();
+
+  const role = user?.role;
+
+  const getHeaderContent = () => {
+    if (role === "admin") {
+      return {
+        title: "Project Portfolio",
+        subtitle: "Managing all company projects and client workspaces",
+        badge: "Admin View",
+      };
+    }
+
+    if (role === "client") {
+      return {
+        title: "My Projects",
+        subtitle: "Track your approved projects, deadlines, and progress",
+        badge: "Client View",
+      };
+    }
+
+    if (role === "employee") {
+      return {
+        title: "Assigned Projects",
+        subtitle: "Projects linked to your assigned tasks and responsibilities",
+        badge: "Employee View",
+      };
+    }
+
+    return {
+      title: "Projects",
+      subtitle: "Project overview and operational tracking",
+      badge: "Member View",
+    };
+  };
+
+  const header = getHeaderContent();
+
   return (
-    <div className="flex justify-between items-end mb-8">
+    <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-8">
       <div className="space-y-1">
         <h2 className="text-4xl font-extrabold text-primary tracking-tight">
-          Project Portfolio
+          {header.title}
         </h2>
 
         <p className="text-slate-500 text-lg">
-          Managing 24 active high-performance systems
+          {header.subtitle}
         </p>
       </div>
 
-      <div className="flex items-center bg-surface-container-low rounded-xl p-1">
-        <button className="px-4 py-2 bg-white shadow-sm rounded-lg text-sm font-semibold text-primary">
-          Admin View
-        </button>
-
-        <button className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-primary transition-all">
-          Team View
+      <div className="flex items-center bg-surface-container-low rounded-xl p-1 w-fit">
+        <button
+          type="button"
+          className="px-4 py-2 bg-white shadow-sm rounded-lg text-sm font-semibold text-primary"
+        >
+          {header.badge}
         </button>
       </div>
     </div>

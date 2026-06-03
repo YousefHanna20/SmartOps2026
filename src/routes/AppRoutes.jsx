@@ -1,8 +1,13 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Landing from "../pages/landing";
 
+import Landing from "../pages/landing";
 import Register from "../pages/register";
 import Login from "../pages/login";
+
+import ForgotPassword from "../pages/forgot-password";
+import ResetPassword from "../pages/reset-password";
+import Verifyotp from "../pages/verify-otp";
+
 import Dashboard from "../pages/dashboard";
 import Projects from "../pages/projects";
 import ProjectDetails from "../pages/project-details";
@@ -10,14 +15,11 @@ import Tasks from "../pages/tasks";
 import ProjectRequest from "../pages/project-request";
 import ProjectTemplates from "../pages/project-templates";
 import Notifications from "../pages/notifications";
-
-import ForgotPassword from "../pages/forgot-password";
-import ResetPassword from "../pages/reset-password";
-import Verifyotp from "../pages/verify-otp";
 import ExportReport from "../pages/export-report";
-
 import AssignTask from "../pages/assign-task";
+
 import ProtectedRoute from "./protected-route";
+import RoleRoute from "./role-route";
 
 function AppRoutes() {
   return (
@@ -44,45 +46,63 @@ function AppRoutes() {
         <Route
           path="/projects"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRoles={["admin", "client", "employee"]}>
               <Projects />
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
 
         <Route
           path="/projects/:id"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRoles={["admin", "client", "employee"]}>
               <ProjectDetails />
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
 
         <Route
           path="/tasks"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRoles={["admin", "employee"]}>
               <Tasks />
-            </ProtectedRoute>
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/tasks/assign"
+          element={
+            <RoleRoute allowedRoles={["admin"]}>
+              <AssignTask />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/tasks/export-report"
+          element={
+            <RoleRoute allowedRoles={["admin"]}>
+              <ExportReport />
+            </RoleRoute>
           }
         />
 
         <Route
           path="/requests"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRoles={["admin", "client"]}>
               <ProjectRequest />
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
 
         <Route
           path="/templates"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRoles={["admin", "client"]}>
               <ProjectTemplates />
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
 
@@ -91,24 +111,6 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Notifications />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/tasks/export-report"
-          element={
-            <ProtectedRoute>
-              <ExportReport />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/tasks/assign"
-          element={
-            <ProtectedRoute>
-              <AssignTask />
             </ProtectedRoute>
           }
         />

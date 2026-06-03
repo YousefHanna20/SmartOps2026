@@ -17,11 +17,11 @@ function Projects() {
         <section className="space-y-8">
           <div className="space-y-1">
             <h2 className="text-2xl font-bold text-primary">
-              Team Insights
+              Project Insights
             </h2>
 
             <p className="text-slate-500">
-              Detailed overview for employees & stakeholders
+              Live overview based on current project status and priority
             </p>
           </div>
 
