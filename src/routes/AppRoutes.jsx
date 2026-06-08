@@ -17,6 +17,8 @@ import ProjectTemplates from "../pages/project-templates";
 import Notifications from "../pages/notifications";
 import ExportReport from "../pages/export-report";
 import AssignTask from "../pages/assign-task";
+import Profile from "../pages/profile";
+import Users from "../pages/users";
 
 import ProtectedRoute from "./protected-route";
 import RoleRoute from "./role-route";
@@ -40,6 +42,24 @@ function AppRoutes() {
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/users"
+          element={
+            <RoleRoute allowedRoles={["admin"]}>
+              <Users />
+            </RoleRoute>
           }
         />
 

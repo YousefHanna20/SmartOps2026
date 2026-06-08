@@ -1,4 +1,10 @@
-function NotificationsHeader() {
+function NotificationsHeader({
+  unreadCount = 0,
+  totalCount = 0,
+  markingAll = false,
+  onMarkAllAsRead,
+  onRefresh,
+}) {
   return (
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
       <div>
@@ -9,21 +15,37 @@ function NotificationsHeader() {
         <h2 className="text-4xl md:text-5xl font-black text-primary tracking-tight">
           Notifications
         </h2>
+
+        <p className="text-slate-500 mt-3 text-base leading-7">
+          You have{" "}
+          <span className="font-black text-[#082b4f]">{unreadCount}</span>{" "}
+          unread notifications out of{" "}
+          <span className="font-black text-[#082b4f]">{totalCount}</span>.
+        </p>
       </div>
 
-      <div className="flex gap-3">
-        <button className="px-6 py-2.5 rounded-lg text-sm font-bold text-primary bg-secondary-container hover:opacity-80 transition-all flex items-center gap-2">
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onMarkAllAsRead}
+          disabled={markingAll || unreadCount === 0}
+          className="px-6 py-3 rounded-xl text-sm font-black text-primary bg-secondary-container hover:opacity-80 transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
           <span className="material-symbols-outlined text-[20px]">
             done_all
           </span>
-          Mark as read
+          {markingAll ? "Updating..." : "Mark all as read"}
         </button>
 
-        <button className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-br from-primary to-primary-container shadow-lg shadow-primary/10 hover:opacity-90 transition-all flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="px-6 py-3 rounded-xl text-sm font-black text-white bg-gradient-to-br from-primary to-primary-container shadow-lg shadow-primary/10 hover:opacity-90 transition-all flex items-center gap-2"
+        >
           <span className="material-symbols-outlined text-[20px]">
-            filter_list
+            refresh
           </span>
-          Filters
+          Refresh
         </button>
       </div>
     </div>
