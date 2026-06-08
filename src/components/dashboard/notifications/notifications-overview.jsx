@@ -1,4 +1,14 @@
-function NotificationsOverview() {
+function NotificationsOverview({
+  totalCount = 0,
+  unreadCount = 0,
+  criticalCount = 0,
+}) {
+  const unreadWidth =
+    totalCount > 0 ? Math.min((unreadCount / totalCount) * 100, 100) : 0;
+
+  const criticalWidth =
+    totalCount > 0 ? Math.min((criticalCount / totalCount) * 100, 100) : 0;
+
   return (
     <div className="p-8 bg-primary rounded-xl text-white relative overflow-hidden">
       <div className="relative z-10">
@@ -7,18 +17,24 @@ function NotificationsOverview() {
         </span>
 
         <div className="flex items-baseline gap-2 mb-6">
-          <span className="text-5xl font-black">12</span>
+          <span className="text-5xl font-black">{unreadCount}</span>
+
           <span className="text-sm font-medium opacity-80">
-            Pending actions
+            Unread notifications
           </span>
         </div>
 
         <div className="space-y-4">
-          <Progress label="Unread Messages" value="08" width="w-[65%]" />
+          <Progress
+            label="Unread Messages"
+            value={String(unreadCount).padStart(2, "0")}
+            width={`${unreadWidth}%`}
+          />
+
           <Progress
             label="Critical Alerts"
-            value="02"
-            width="w-[25%]"
+            value={String(criticalCount).padStart(2, "0")}
+            width={`${criticalWidth}%`}
             color="bg-error"
           />
         </div>
@@ -39,7 +55,7 @@ function Progress({ label, value, width, color = "bg-tertiary-fixed-dim" }) {
       </div>
 
       <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-        <div className={`${color} h-full ${width}`} />
+        <div className={`${color} h-full`} style={{ width }} />
       </div>
     </>
   );

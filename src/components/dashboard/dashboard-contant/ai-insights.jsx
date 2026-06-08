@@ -1,65 +1,78 @@
-function AiInsights() {
+function AiInsights({ insights = [], loading = false }) {
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-sm shadow-blue-900/5">
-      <div className="px-6 py-4 bg-slate-50 flex items-center justify-between">
-        <h3 className="font-bold text-blue-900 flex items-center gap-2">
-          <span
-            className="material-symbols-outlined text-primary"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            insights
-          </span>
-          AI Predictive Analytics
-        </h3>
+    <div className="bg-white rounded-3xl overflow-hidden shadow-sm shadow-blue-900/5 border border-slate-100">
+      <div className="px-7 py-6 bg-gradient-to-r from-slate-50 to-white flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100">
+        <div>
+          <h3 className="font-black text-blue-900 text-2xl tracking-tight flex items-center gap-2">
+            <span
+              className="material-symbols-outlined text-primary"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              insights
+            </span>
+            Smart Insights
+          </h3>
 
-        <span className="text-[10px] font-bold uppercase tracking-widest bg-blue-100 text-blue-700 px-2 py-1 rounded">
+          <p className="text-sm text-slate-500 mt-1">
+            Live operational signals calculated from your current workspace.
+          </p>
+        </div>
+
+        <span className="text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-700 px-3 py-2 rounded-full">
           Live Data
         </span>
       </div>
 
-      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-5 rounded-lg bg-surface-container-low flex flex-col gap-3">
-          <span className="uppercase tracking-widest text-[10px] text-slate-500 font-bold">
-            Recommended Priority
-          </span>
-
-          <h4 className="text-xl font-bold text-primary">
-            Structural Review #402
-          </h4>
-
-          <p className="text-sm text-slate-600 leading-relaxed">
-            3 key stakeholders are awaiting clearance. Delaying this will impact
-            4 downstream tasks in "Skyline Phase 2".
-          </p>
-
-          <div className="mt-2 flex items-center gap-2 text-on-tertiary-fixed-variant bg-tertiary-container/10 px-3 py-1 rounded-full w-fit">
-            <span className="material-symbols-outlined text-sm">
-              check_circle
-            </span>
-            <span className="text-xs font-bold">Priority High</span>
+      <div className="p-7">
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {[1, 2, 3, 4].map((item) => (
+              <div
+                key={item}
+                className="h-36 rounded-2xl bg-slate-100 animate-pulse"
+              />
+            ))}
           </div>
-        </div>
-
-        <div className="p-5 rounded-lg bg-error-container/20 flex flex-col gap-3 border border-error-container/30">
-          <span className="uppercase tracking-widest text-[10px] text-error font-bold">
-            Predicted Delay
-          </span>
-
-          <h4 className="text-xl font-bold text-on-error-container">
-            Permit Acquisition
-          </h4>
-
-          <p className="text-sm text-on-error-container opacity-80 leading-relaxed">
-            Estimated delay of <strong>4.5 days</strong> due to municipal office
-            backlogs. Consider shifting resource allocation.
-          </p>
-
-          <div className="mt-2 flex items-center gap-2 text-error font-bold">
-            <span className="material-symbols-outlined text-sm">warning</span>
-            <span className="text-xs">Action Required</span>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {insights.map((insight) => (
+              <InsightCard key={insight.title} insight={insight} />
+            ))}
           </div>
-        </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function InsightCard({ insight }) {
+  const toneMap = {
+    success: "bg-emerald-50 border-emerald-100 text-emerald-700",
+    warning: "bg-amber-50 border-amber-100 text-amber-700",
+    danger: "bg-red-50 border-red-100 text-red-700",
+    info: "bg-blue-50 border-blue-100 text-blue-700",
+    primary: "bg-slate-50 border-slate-100 text-primary",
+  };
+
+  return (
+    <div
+      className={`rounded-2xl border p-5 min-h-[150px] flex flex-col justify-between ${
+        toneMap[insight.tone] || toneMap.primary
+      }`}
+    >
+      <div>
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <span className="text-[10px] font-black uppercase tracking-widest opacity-70">
+            {insight.title}
+          </span>
+
+          <span className="material-symbols-outlined">{insight.icon}</span>
+        </div>
+
+        <h4 className="text-2xl font-black tracking-tight">{insight.value}</h4>
+      </div>
+
+      <p className="text-sm leading-6 opacity-80 mt-4">{insight.description}</p>
     </div>
   );
 }
