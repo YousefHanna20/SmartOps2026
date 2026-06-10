@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/auth-context";
-import { getTasks, updateTaskStatus } from "../../../../services/task-service";
+import {
+  getTasks,
+  updateTask,
+  updateTaskStatus,
+} from "../../../../services/task-service";
 import EmptyState from "../../../common/empty-state";
 import ErrorState from "../../../common/error-state";
 import Toast from "../../../common/toast";
@@ -20,6 +24,17 @@ function ActiveTasks({ projectId }) {
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [tasksError, setTasksError] = useState("");
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
+
+  const [taskToEdit, setTaskToEdit] = useState(null);
+  const [editingTaskId, setEditingTaskId] = useState(null);
+
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    deadline: "",
+    priority: "medium",
+    status: "pending",
+  });
 
   const { toast, showToast, hideToast } = useToast();
 
@@ -129,6 +144,105 @@ function ActiveTasks({ projectId }) {
     }
   };
 
+  const openEditTaskModal = (task) => {
+    if (!isAdmin) return;
+
+    setTaskToEdit(task);
+
+    setEditForm({
+      title: getTaskTitle(task),
+      description: task.description || "",
+      deadline: task.deadline ? String(task.deadline).slice(0, 10) : "",
+      priority: getPriority(task),
+      status: getStatus(task),
+    });
+  };
+
+  const resetEditForm = () => {
+    setEditForm({
+      title: "",
+      description: "",
+      deadline: "",
+      priority: "medium",
+      status: "pending",
+    });
+  };
+
+  const closeEditTaskModal = () => {
+    if (editingTaskId) return;
+
+    setTaskToEdit(null);
+    resetEditForm();
+  };
+
+  const handleEditFormChange = (field, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const confirmEditTask = async (event) => {
+    event.preventDefault();
+
+    if (!taskToEdit) return;
+
+    const taskId = getTaskId(taskToEdit);
+
+    if (!editForm.title.trim()) {
+      showToast("error", "Task title is required.");
+      return;
+    }
+
+    if (!editForm.description.trim()) {
+      showToast("error", "Task description is required.");
+      return;
+    }
+
+    if (!editForm.deadline) {
+      showToast("error", "Deadline is required.");
+      return;
+    }
+
+    setEditingTaskId(taskId);
+
+    try {
+      const payload = {
+        title: editForm.title.trim(),
+        description: editForm.description.trim(),
+        deadline: editForm.deadline,
+        priority: editForm.priority,
+        status: editForm.status,
+      };
+
+      await updateTask(taskId, payload);
+
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          getTaskId(task) === taskId
+            ? {
+                ...task,
+                ...payload,
+              }
+            : task
+        )
+      );
+
+      window.dispatchEvent(new Event("tasks-updated"));
+
+      showToast("success", "Task updated successfully.");
+      setTaskToEdit(null);
+      resetEditForm();
+    } catch (error) {
+      showToast(
+        "error",
+        error.response?.data?.message || "Failed to update task."
+      );
+    } finally {
+      setEditingTaskId(null);
+    }
+  };
+
   if (isClient) {
     return (
       <div className="lg:col-span-2 space-y-6">
@@ -205,6 +319,139 @@ function ActiveTasks({ projectId }) {
     <div className="lg:col-span-2 space-y-6">
       <Toast type={toast.type} message={toast.message} onClose={hideToast} />
 
+      {taskToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-7 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-2xl font-black text-[#0b2a4a]">
+                  Edit Task
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Update this project task. Only admins can edit task details.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeEditTaskModal}
+                disabled={!!editingTaskId}
+                className="rounded-xl bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 disabled:opacity-60"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={confirmEditTask} className="mt-6 space-y-4">
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-400">
+                  Task Title
+                </label>
+
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(event) =>
+                    handleEditFormChange("title", event.target.value)
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-[#0b2a4a] outline-none focus:border-[#082b4f]"
+                  placeholder="Enter task title"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-400">
+                  Description
+                </label>
+
+                <textarea
+                  value={editForm.description}
+                  onChange={(event) =>
+                    handleEditFormChange("description", event.target.value)
+                  }
+                  rows={4}
+                  className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-[#0b2a4a] outline-none focus:border-[#082b4f]"
+                  placeholder="Enter task description"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-400">
+                    Deadline
+                  </label>
+
+                  <input
+                    type="date"
+                    value={editForm.deadline}
+                    onChange={(event) =>
+                      handleEditFormChange("deadline", event.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-[#0b2a4a] outline-none focus:border-[#082b4f]"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-400">
+                    Priority
+                  </label>
+
+                  <select
+                    value={editForm.priority}
+                    onChange={(event) =>
+                      handleEditFormChange("priority", event.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-[#0b2a4a] outline-none focus:border-[#082b4f]"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-400">
+                    Status
+                  </label>
+
+                  <select
+                    value={editForm.status}
+                    onChange={(event) =>
+                      handleEditFormChange("status", event.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-[#0b2a4a] outline-none focus:border-[#082b4f]"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeEditTaskModal}
+                  disabled={!!editingTaskId}
+                  className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-600 hover:bg-slate-200 disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!!editingTaskId}
+                  className="rounded-xl bg-[#082b4f] px-6 py-3 text-sm font-black text-white hover:opacity-90 disabled:opacity-60"
+                >
+                  {editingTaskId ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 px-2">
         <div>
           <h4 className="text-3xl font-black text-blue-900 tracking-tight">
@@ -263,7 +510,9 @@ function ActiveTasks({ projectId }) {
             isAdmin={isAdmin}
             isEmployee={isEmployee}
             isUpdating={updatingTaskId === getTaskId(task)}
+            isEditing={editingTaskId === getTaskId(task)}
             onStatusChange={handleStatusChange}
+            onEdit={() => openEditTaskModal(task)}
             formatStatus={formatStatus}
             formatPriority={formatPriority}
             getStatusClass={getStatusClass}
@@ -287,7 +536,9 @@ function TaskItem({
   isAdmin,
   isEmployee,
   isUpdating,
+  isEditing,
   onStatusChange,
+  onEdit,
   formatStatus,
   formatPriority,
   getStatusClass,
@@ -315,17 +566,9 @@ function TaskItem({
             </p>
 
             <div className="flex flex-wrap gap-3 mt-5">
-              <InfoPill
-                icon="person"
-                label="Assigned"
-                value={assignee}
-              />
+              <InfoPill icon="person" label="Assigned" value={assignee} />
 
-              <InfoPill
-                icon="event"
-                label="Deadline"
-                value={deadline}
-              />
+              <InfoPill icon="event" label="Deadline" value={deadline} />
 
               <span
                 className={`inline-flex items-center px-4 py-2 rounded-xl text-xs font-black uppercase ${getPriorityClass(
@@ -346,7 +589,7 @@ function TaskItem({
           {canUpdateStatus ? (
             <select
               value={status}
-              disabled={isUpdating}
+              disabled={isUpdating || isEditing}
               onChange={(event) => onStatusChange(taskId, event.target.value)}
               className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest outline-none disabled:opacity-60 border border-transparent ${getStatusClass(
                 status
@@ -366,8 +609,24 @@ function TaskItem({
             </span>
           )}
 
-          {isUpdating && (
-            <span className="text-sm text-slate-400 font-bold">Saving...</span>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={onEdit}
+              disabled={isUpdating || isEditing}
+              className="px-4 py-3 rounded-xl bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-widest hover:bg-blue-100 disabled:opacity-60 flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[17px]">
+                edit
+              </span>
+              Edit Task
+            </button>
+          )}
+
+          {(isUpdating || isEditing) && (
+            <span className="text-sm text-slate-400 font-bold">
+              {isEditing ? "Saving..." : "Saving status..."}
+            </span>
           )}
         </div>
       </div>

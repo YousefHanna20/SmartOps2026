@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/auth-context";
 import {
   getTasks,
+  updateTask,
   updateTaskStatus,
   deleteTask,
 } from "../../../services/task-service";
@@ -36,6 +37,16 @@ function TasksPageContent() {
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [deletingTaskId, setDeletingTaskId] = useState(null);
   const [taskToDelete, setTaskToDelete] = useState(null);
+
+  const [taskToEdit, setTaskToEdit] = useState(null);
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    deadline: "",
+    priority: "medium",
+    status: "pending",
+  });
 
   const { toast, showToast, hideToast } = useToast();
 
@@ -249,6 +260,105 @@ function TasksPageContent() {
     }
   };
 
+  const openEditTaskModal = (task) => {
+    if (!isAdmin) return;
+
+    setTaskToEdit(task);
+
+    setEditForm({
+      title: getTaskTitle(task),
+      description: task.description || "",
+      deadline: task.deadline ? String(task.deadline).slice(0, 10) : "",
+      priority: getPriority(task),
+      status: getStatus(task),
+    });
+  };
+
+  const resetEditForm = () => {
+    setEditForm({
+      title: "",
+      description: "",
+      deadline: "",
+      priority: "medium",
+      status: "pending",
+    });
+  };
+
+  const closeEditTaskModal = () => {
+    if (editingTaskId) return;
+
+    setTaskToEdit(null);
+    resetEditForm();
+  };
+
+  const handleEditFormChange = (field, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const confirmEditTask = async (event) => {
+    event.preventDefault();
+
+    if (!taskToEdit) return;
+
+    const taskId = getTaskId(taskToEdit);
+
+    if (!editForm.title.trim()) {
+      showToast("error", "Task title is required.");
+      return;
+    }
+
+    if (!editForm.description.trim()) {
+      showToast("error", "Task description is required.");
+      return;
+    }
+
+    if (!editForm.deadline) {
+      showToast("error", "Deadline is required.");
+      return;
+    }
+
+    setEditingTaskId(taskId);
+
+    try {
+      const payload = {
+        title: editForm.title.trim(),
+        description: editForm.description.trim(),
+        deadline: editForm.deadline,
+        priority: editForm.priority,
+        status: editForm.status,
+      };
+
+      await updateTask(taskId, payload);
+
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          getTaskId(task) === taskId
+            ? {
+                ...task,
+                ...payload,
+              }
+            : task
+        )
+      );
+
+      window.dispatchEvent(new Event("tasks-updated"));
+
+      showToast("success", "Task updated successfully.");
+      setTaskToEdit(null);
+      resetEditForm();
+    } catch (error) {
+      showToast(
+        "error",
+        error.response?.data?.message || "Failed to update task."
+      );
+    } finally {
+      setEditingTaskId(null);
+    }
+  };
+
   const canUpdateStatus = isAdmin || isEmployee;
 
   if (loadingTasks) {
@@ -287,6 +397,139 @@ function TasksPageContent() {
         onConfirm={confirmDeleteTask}
         onCancel={closeDeleteTaskModal}
       />
+
+      {taskToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-7 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-2xl font-black text-[#0b2a4a]">
+                  Edit Task
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Update task details. Only admins can edit task information.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeEditTaskModal}
+                disabled={!!editingTaskId}
+                className="rounded-xl bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 disabled:opacity-60"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={confirmEditTask} className="mt-6 space-y-4">
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-400">
+                  Task Title
+                </label>
+
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(event) =>
+                    handleEditFormChange("title", event.target.value)
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-[#0b2a4a] outline-none focus:border-[#082b4f]"
+                  placeholder="Enter task title"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-400">
+                  Description
+                </label>
+
+                <textarea
+                  value={editForm.description}
+                  onChange={(event) =>
+                    handleEditFormChange("description", event.target.value)
+                  }
+                  rows={4}
+                  className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-[#0b2a4a] outline-none focus:border-[#082b4f]"
+                  placeholder="Enter task description"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-400">
+                    Deadline
+                  </label>
+
+                  <input
+                    type="date"
+                    value={editForm.deadline}
+                    onChange={(event) =>
+                      handleEditFormChange("deadline", event.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-[#0b2a4a] outline-none focus:border-[#082b4f]"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-400">
+                    Priority
+                  </label>
+
+                  <select
+                    value={editForm.priority}
+                    onChange={(event) =>
+                      handleEditFormChange("priority", event.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-[#0b2a4a] outline-none focus:border-[#082b4f]"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-400">
+                    Status
+                  </label>
+
+                  <select
+                    value={editForm.status}
+                    onChange={(event) =>
+                      handleEditFormChange("status", event.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-[#0b2a4a] outline-none focus:border-[#082b4f]"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeEditTaskModal}
+                  disabled={!!editingTaskId}
+                  className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-600 hover:bg-slate-200 disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!!editingTaskId}
+                  className="rounded-xl bg-[#082b4f] px-6 py-3 text-sm font-black text-white hover:opacity-90 disabled:opacity-60"
+                >
+                  {editingTaskId ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <section className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
         <h2 className="text-4xl font-black text-[#0b2a4a] tracking-tight">
@@ -511,7 +754,7 @@ function TasksPageContent() {
 
         {viewMode === "list" ? (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="hidden md:grid grid-cols-[1fr_170px_130px_160px_90px] px-6 py-5 text-[12px] uppercase tracking-widest text-slate-400 font-black border-b">
+            <div className="hidden md:grid grid-cols-[1fr_170px_130px_160px_110px] px-6 py-5 text-[12px] uppercase tracking-widest text-slate-400 font-black border-b">
               <p>Task Title</p>
               <p>Assigned To</p>
               <p>Priority</p>
@@ -541,11 +784,12 @@ function TasksPageContent() {
               const status = getStatus(task);
               const isUpdating = updatingTaskId === taskId;
               const isDeleting = deletingTaskId === taskId;
+              const isEditing = editingTaskId === taskId;
 
               return (
                 <div
                   key={taskId}
-                  className="grid grid-cols-1 md:grid-cols-[1fr_170px_130px_160px_90px] gap-4 md:gap-0 items-center px-6 py-6 border-b last:border-b-0 hover:bg-slate-50/70 transition"
+                  className="grid grid-cols-1 md:grid-cols-[1fr_170px_130px_160px_110px] gap-4 md:gap-0 items-center px-6 py-6 border-b last:border-b-0 hover:bg-slate-50/70 transition"
                 >
                   <div>
                     <p className="font-black text-[#0b2a4a] text-lg leading-6">
@@ -579,7 +823,7 @@ function TasksPageContent() {
                   {canUpdateStatus ? (
                     <select
                       value={status}
-                      disabled={isUpdating || isDeleting}
+                      disabled={isUpdating || isDeleting || isEditing}
                       onChange={(event) =>
                         handleStatusChange(taskId, event.target.value)
                       }
@@ -601,18 +845,33 @@ function TasksPageContent() {
                     </span>
                   )}
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
                     {isAdmin ? (
-                      <button
-                        type="button"
-                        onClick={() => openDeleteTaskModal(task)}
-                        disabled={isDeleting || isUpdating}
-                        className="w-10 h-10 rounded-xl bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 disabled:opacity-60 flex items-center justify-center transition"
-                      >
-                        <span className="material-symbols-outlined">
-                          delete
-                        </span>
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openEditTaskModal(task)}
+                          disabled={isDeleting || isUpdating || isEditing}
+                          className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 hover:text-blue-700 hover:bg-blue-100 disabled:opacity-60 flex items-center justify-center transition"
+                          title="Edit task"
+                        >
+                          <span className="material-symbols-outlined">
+                            edit
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => openDeleteTaskModal(task)}
+                          disabled={isDeleting || isUpdating || isEditing}
+                          className="w-10 h-10 rounded-xl bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 disabled:opacity-60 flex items-center justify-center transition"
+                          title="Delete task"
+                        >
+                          <span className="material-symbols-outlined">
+                            delete
+                          </span>
+                        </button>
+                      </>
                     ) : (
                       <span className="material-symbols-outlined text-slate-300">
                         more_vert
@@ -663,6 +922,7 @@ function TasksPageContent() {
                       const priority = getPriority(task);
                       const status = getStatus(task);
                       const isUpdating = updatingTaskId === taskId;
+                      const isEditing = editingTaskId === taskId;
 
                       return (
                         <div
@@ -696,10 +956,24 @@ function TasksPageContent() {
                             {getTaskDescription(task)}
                           </p>
 
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => openEditTaskModal(task)}
+                              disabled={isUpdating || isEditing}
+                              className="mt-4 w-full rounded-xl bg-blue-50 px-4 py-3 text-xs font-black text-blue-700 hover:bg-blue-100 disabled:opacity-60 flex items-center justify-center gap-2"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">
+                                edit
+                              </span>
+                              Edit Task
+                            </button>
+                          )}
+
                           {canUpdateStatus && (
                             <select
                               value={status}
-                              disabled={isUpdating}
+                              disabled={isUpdating || isEditing}
                               onChange={(event) =>
                                 handleStatusChange(taskId, event.target.value)
                               }
