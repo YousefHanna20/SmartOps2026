@@ -5,6 +5,7 @@ import AppShell from "../components/layout/app-shell";
 import ProjectSummary from "../components/dashboard/projects/project-details/project-summary";
 import ActiveTasks from "../components/dashboard/projects/project-details/active-tasks";
 import ProjectSideInfo from "../components/dashboard/projects/project-details/project-side-info";
+import AiAnalysisPanel from "../components/dashboard/projects/project-details/ai-analysis-panel";
 
 import { getProjectById, updateProject } from "../services/project-service";
 import { useAuth } from "../context/auth-context";
@@ -137,54 +138,72 @@ function ProjectDetails() {
       <div className="space-y-8">
         <section>
           <div className="mb-8">
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-              Project ID: {project.project_id}
-            </p>
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                  Project ID: {project.project_id}
+                </p>
 
-            <h2 className="text-4xl font-black text-blue-900 tracking-tight mt-2">
-              {project.name}
-            </h2>
+                <h2 className="text-4xl font-black text-blue-900 tracking-tight mt-2">
+                  {project.name}
+                </h2>
 
-            <p className="text-base text-slate-500 mt-4 max-w-4xl leading-7">
-              {project.description || "No project description available."}
-            </p>
+                <p className="text-base text-slate-500 mt-4 max-w-4xl leading-7">
+                  {project.description || "No project description available."}
+                </p>
+              </div>
 
-            {isAdmin && (
-              <div className="flex flex-wrap gap-3 mt-6">
-                {canAssignTask ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(`/tasks/assign?projectId=${project.project_id}`)
-                    }
-                    className="px-5 py-3 rounded-xl bg-[#082b4f] text-white text-sm font-black hover:opacity-90 transition flex items-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      add_task
-                    </span>
-                    Assign Task
-                  </button>
-                ) : (
-                  <div className="px-5 py-3 rounded-xl bg-slate-100 text-slate-500 text-sm font-black flex items-center gap-2 cursor-not-allowed">
-                    <span className="material-symbols-outlined text-[18px]">
-                      lock
-                    </span>
-                    Task assignment locked
-                  </div>
-                )}
+              <div className="w-full lg:w-auto rounded-2xl bg-white border border-slate-100 shadow-sm p-4 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#082b4f] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined">psychology</span>
+                </div>
 
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    AI Ready
+                  </p>
+
+                  <p className="text-sm font-black text-[#0b2a4a] mt-1">
+                    Smart health tracking enabled
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3 mt-6">
+              {isAdmin && canAssignTask ? (
                 <button
                   type="button"
-                  onClick={() => navigate("/projects")}
-                  className="px-5 py-3 rounded-xl bg-slate-100 text-[#082b4f] text-sm font-black hover:bg-slate-200 transition flex items-center gap-2"
+                  onClick={() =>
+                    navigate(`/tasks/assign?projectId=${project.project_id}`)
+                  }
+                  className="px-5 py-3 rounded-xl bg-[#082b4f] text-white text-sm font-black hover:opacity-90 transition flex items-center gap-2"
                 >
                   <span className="material-symbols-outlined text-[18px]">
-                    arrow_back
+                    add_task
                   </span>
-                  Back to Projects
+                  Assign Task
                 </button>
-              </div>
-            )}
+              ) : isAdmin ? (
+                <div className="px-5 py-3 rounded-xl bg-slate-100 text-slate-500 text-sm font-black flex items-center gap-2 cursor-not-allowed">
+                  <span className="material-symbols-outlined text-[18px]">
+                    lock
+                  </span>
+                  Task assignment locked
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => navigate("/projects")}
+                className="px-5 py-3 rounded-xl bg-slate-100 text-[#082b4f] text-sm font-black hover:bg-slate-200 transition flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  arrow_back
+                </span>
+                Back to Projects
+              </button>
+            </div>
           </div>
 
           <ProjectSummary
@@ -194,6 +213,8 @@ function ProjectDetails() {
             onProjectUpdate={handleProjectUpdate}
           />
         </section>
+
+        <AiAnalysisPanel project={project} />
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <ActiveTasks projectId={project.project_id} />
