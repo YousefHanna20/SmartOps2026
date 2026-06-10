@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   generateProjectAiAnalysis,
   getLatestProjectAiAnalysis,
@@ -10,23 +10,29 @@ function AiAnalysisPanel({ project }) {
   const [generatingAnalysis, setGeneratingAnalysis] = useState(false);
   const [analysisError, setAnalysisError] = useState("");
   const [hasNoAnalysis, setHasNoAnalysis] = useState(false);
+  const [autoMessage, setAutoMessage] = useState("");
 
+  const refreshTimerRef = useRef(null);
   const projectId = project?.project_id;
 
-  const loadLatestAnalysis = async () => {
+  const loadLatestAnalysis = async ({ showLoading = true } = {}) => {
     if (!projectId) return;
 
-    setLoadingAnalysis(true);
+    if (showLoading) {
+      setLoadingAnalysis(true);
+    }
+
     setAnalysisError("");
     setHasNoAnalysis(false);
 
     try {
       const data = await getLatestProjectAiAnalysis(projectId);
       setAnalysis(data.analysis);
+      setHasNoAnalysis(false);
     } catch (error) {
       if (error.response?.status === 404) {
-        setHasNoAnalysis(true);
         setAnalysis(null);
+        setHasNoAnalysis(true);
         return;
       }
 
@@ -38,18 +44,16 @@ function AiAnalysisPanel({ project }) {
     }
   };
 
-  useEffect(() => {
-    loadLatestAnalysis();
-  }, [projectId]);
-
   const handleGenerateAnalysis = async () => {
     if (!projectId) return;
 
     setGeneratingAnalysis(true);
     setAnalysisError("");
+    setAutoMessage("");
 
     try {
       const data = await generateProjectAiAnalysis(projectId);
+
       setAnalysis(data.analysis);
       setHasNoAnalysis(false);
 
@@ -62,6 +66,58 @@ function AiAnalysisPanel({ project }) {
       setGeneratingAnalysis(false);
     }
   };
+
+  const scheduleLatestRefresh = (message) => {
+    if (!projectId) return;
+
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+    }
+
+    setAutoMessage(message);
+
+    refreshTimerRef.current = setTimeout(async () => {
+      await loadLatestAnalysis({ showLoading: false });
+
+      setAutoMessage("AI analysis refreshed automatically.");
+
+      setTimeout(() => {
+        setAutoMessage("");
+      }, 2500);
+    }, 900);
+  };
+
+  useEffect(() => {
+    loadLatestAnalysis();
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, [projectId]);
+
+  useEffect(() => {
+    const handleTasksUpdated = () => {
+      scheduleLatestRefresh(
+        "Task change detected. Loading latest AI analysis..."
+      );
+    };
+
+    const handleProjectsUpdated = () => {
+      scheduleLatestRefresh(
+        "Project change detected. Loading latest AI analysis..."
+      );
+    };
+
+    window.addEventListener("tasks-updated", handleTasksUpdated);
+    window.addEventListener("projects-updated", handleProjectsUpdated);
+
+    return () => {
+      window.removeEventListener("tasks-updated", handleTasksUpdated);
+      window.removeEventListener("projects-updated", handleProjectsUpdated);
+    };
+  }, [projectId]);
 
   const riskLevel = analysis?.risk_level || "medium";
   const healthScore = Number(analysis?.health_score || 0);
@@ -129,9 +185,22 @@ function AiAnalysisPanel({ project }) {
             </h3>
 
             <p className="text-blue-100/80 text-base leading-7 mt-3">
-              Predictive analysis based on task progress, deadline pressure,
-              overdue work, priority risks, and project status.
+              This analysis is generated automatically by the backend after
+              task or project changes. The button below is only for manual
+              re-analysis.
             </p>
+
+            {autoMessage && (
+              <div className="mt-5 rounded-2xl bg-blue-400/10 border border-blue-200/20 p-4 flex items-start gap-3">
+                <span className="material-symbols-outlined text-blue-200 text-[22px]">
+                  sync
+                </span>
+
+                <p className="text-blue-100 text-sm font-bold leading-6">
+                  {autoMessage}
+                </p>
+              </div>
+            )}
 
             {analysis?.summary && (
               <div className="mt-6 rounded-2xl bg-white/10 border border-white/10 p-5">
@@ -148,13 +217,12 @@ function AiAnalysisPanel({ project }) {
             {hasNoAnalysis && !loadingAnalysis && (
               <div className="mt-6 rounded-2xl bg-white/10 border border-white/10 p-5">
                 <p className="text-white font-black text-lg">
-                  No AI analysis generated yet.
+                  No AI analysis found yet.
                 </p>
 
                 <p className="text-blue-100/80 text-sm leading-7 mt-2">
-                  Generate the first analysis to calculate project health score,
-                  risk level, delay prediction, bottlenecks, and recommended
-                  actions.
+                  Create or update a task, or use manual re-analysis to
+                  generate the first AI result.
                 </p>
               </div>
             )}
@@ -175,19 +243,19 @@ function AiAnalysisPanel({ project }) {
                 <span className="material-symbols-outlined text-[19px]">
                   auto_awesome
                 </span>
-                {generatingAnalysis ? "Generating..." : "Generate AI Analysis"}
+                {generatingAnalysis ? "Re-analyzing..." : "Manual Re-analysis"}
               </button>
 
               <button
                 type="button"
-                onClick={loadLatestAnalysis}
+                onClick={() => loadLatestAnalysis()}
                 disabled={loadingAnalysis || generatingAnalysis}
                 className="px-5 py-3 rounded-xl bg-white/10 text-white border border-white/10 text-sm font-black hover:bg-white/15 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[19px]">
                   refresh
                 </span>
-                Refresh
+                Load Latest
               </button>
             </div>
           </div>
@@ -202,7 +270,7 @@ function AiAnalysisPanel({ project }) {
                 </div>
 
                 <p className="text-sm font-black text-slate-500 mt-4">
-                  Loading AI analysis...
+                  Loading latest AI analysis...
                 </p>
               </div>
             ) : (
@@ -249,7 +317,7 @@ function AiAnalysisPanel({ project }) {
                     value={
                       analysis
                         ? shortPrediction(analysis.delay_prediction)
-                        : "Generate"
+                        : "No Data"
                     }
                     className="bg-slate-100 text-slate-600"
                   />
