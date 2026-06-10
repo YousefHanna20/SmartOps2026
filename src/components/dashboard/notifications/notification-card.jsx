@@ -157,6 +157,14 @@ function getNotificationMeta(type) {
       iconClass: "bg-green-50 text-green-600",
       tagClass: "bg-green-100 text-green-700",
     },
+
+    ai_risk_detected: {
+      title: "AI Risk Detected",
+      icon: "psychology",
+      tag: "AI Alert",
+      iconClass: "bg-red-50 text-red-700",
+      tagClass: "bg-red-100 text-red-700",
+    },
   };
 
   return (
