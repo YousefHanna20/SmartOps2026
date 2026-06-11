@@ -1,4 +1,4 @@
-import Navbar from "../components/layout/Navbar";
+import Navbar from "../components/layout/navbar";
 import Hero from "../components/landing/Hero";
 import Features from "../components/landing/Features";
 import ProductPreview from "../components/landing/product-preview";
