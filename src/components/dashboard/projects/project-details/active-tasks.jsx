@@ -5,11 +5,13 @@ import {
   getTasks,
   updateTask,
   updateTaskStatus,
+  deleteTask,
 } from "../../../../services/task-service";
 import EmptyState from "../../../common/empty-state";
 import ErrorState from "../../../common/error-state";
 import Toast from "../../../common/toast";
 import LoadingState from "../../../common/loading-state";
+import ConfirmModal from "../../../common/confirm-modal";
 import useToast from "../../../../hooks/use-toast";
 
 function ActiveTasks({ projectId }) {
@@ -23,10 +25,14 @@ function ActiveTasks({ projectId }) {
   const [tasks, setTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [tasksError, setTasksError] = useState("");
+
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
 
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [editingTaskId, setEditingTaskId] = useState(null);
+
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [deletingTaskId, setDeletingTaskId] = useState(null);
 
   const [editForm, setEditForm] = useState({
     title: "",
@@ -243,6 +249,46 @@ function ActiveTasks({ projectId }) {
     }
   };
 
+  const openDeleteTaskModal = (task) => {
+    if (!isAdmin) return;
+
+    setTaskToDelete(task);
+  };
+
+  const closeDeleteTaskModal = () => {
+    if (deletingTaskId) return;
+
+    setTaskToDelete(null);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return;
+
+    const taskId = getTaskId(taskToDelete);
+
+    setDeletingTaskId(taskId);
+
+    try {
+      await deleteTask(taskId);
+
+      setTasks((prevTasks) =>
+        prevTasks.filter((task) => getTaskId(task) !== taskId)
+      );
+
+      window.dispatchEvent(new Event("tasks-updated"));
+
+      showToast("success", "Task deleted successfully.");
+      setTaskToDelete(null);
+    } catch (error) {
+      showToast(
+        "error",
+        error.response?.data?.message || "Failed to delete task."
+      );
+    } finally {
+      setDeletingTaskId(null);
+    }
+  };
+
   if (isClient) {
     return (
       <div className="lg:col-span-2 space-y-6">
@@ -318,6 +364,24 @@ function ActiveTasks({ projectId }) {
   return (
     <div className="lg:col-span-2 space-y-6">
       <Toast type={toast.type} message={toast.message} onClose={hideToast} />
+
+      <ConfirmModal
+        isOpen={!!taskToDelete}
+        title="Delete task?"
+        description={
+          taskToDelete
+            ? `Are you sure you want to delete "${getTaskTitle(
+                taskToDelete
+              )}"? This action cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete Task"
+        cancelLabel="Cancel"
+        type="danger"
+        loading={!!deletingTaskId}
+        onConfirm={confirmDeleteTask}
+        onCancel={closeDeleteTaskModal}
+      />
 
       {taskToEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -496,29 +560,35 @@ function ActiveTasks({ projectId }) {
           />
         )}
 
-        {projectTasks.map((task) => (
-          <TaskItem
-            key={getTaskId(task)}
-            taskId={getTaskId(task)}
-            title={getTaskTitle(task)}
-            description={getTaskDescription(task)}
-            assignee={getAssigneeName(task)}
-            status={getStatus(task)}
-            priority={getPriority(task)}
-            deadline={getDeadline(task)}
-            icon={getTaskIcon(getPriority(task))}
-            isAdmin={isAdmin}
-            isEmployee={isEmployee}
-            isUpdating={updatingTaskId === getTaskId(task)}
-            isEditing={editingTaskId === getTaskId(task)}
-            onStatusChange={handleStatusChange}
-            onEdit={() => openEditTaskModal(task)}
-            formatStatus={formatStatus}
-            formatPriority={formatPriority}
-            getStatusClass={getStatusClass}
-            getPriorityClass={getPriorityClass}
-          />
-        ))}
+        {projectTasks.map((task) => {
+          const taskId = getTaskId(task);
+
+          return (
+            <TaskItem
+              key={taskId}
+              taskId={taskId}
+              title={getTaskTitle(task)}
+              description={getTaskDescription(task)}
+              assignee={getAssigneeName(task)}
+              status={getStatus(task)}
+              priority={getPriority(task)}
+              deadline={getDeadline(task)}
+              icon={getTaskIcon(getPriority(task))}
+              isAdmin={isAdmin}
+              isEmployee={isEmployee}
+              isUpdating={updatingTaskId === taskId}
+              isEditing={editingTaskId === taskId}
+              isDeleting={deletingTaskId === taskId}
+              onStatusChange={handleStatusChange}
+              onEdit={() => openEditTaskModal(task)}
+              onDelete={() => openDeleteTaskModal(task)}
+              formatStatus={formatStatus}
+              formatPriority={formatPriority}
+              getStatusClass={getStatusClass}
+              getPriorityClass={getPriorityClass}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -537,14 +607,17 @@ function TaskItem({
   isEmployee,
   isUpdating,
   isEditing,
+  isDeleting,
   onStatusChange,
   onEdit,
+  onDelete,
   formatStatus,
   formatPriority,
   getStatusClass,
   getPriorityClass,
 }) {
   const canUpdateStatus = isAdmin || isEmployee;
+  const isBusy = isUpdating || isEditing || isDeleting;
 
   return (
     <div className="p-6 hover:bg-slate-50/80 transition-colors border-t first:border-t-0 border-slate-100">
@@ -589,7 +662,7 @@ function TaskItem({
           {canUpdateStatus ? (
             <select
               value={status}
-              disabled={isUpdating || isEditing}
+              disabled={isBusy}
               onChange={(event) => onStatusChange(taskId, event.target.value)}
               className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest outline-none disabled:opacity-60 border border-transparent ${getStatusClass(
                 status
@@ -610,22 +683,40 @@ function TaskItem({
           )}
 
           {isAdmin && (
-            <button
-              type="button"
-              onClick={onEdit}
-              disabled={isUpdating || isEditing}
-              className="px-4 py-3 rounded-xl bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-widest hover:bg-blue-100 disabled:opacity-60 flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-[17px]">
-                edit
-              </span>
-              Edit Task
-            </button>
+            <div className="flex flex-wrap justify-start xl:justify-end gap-2">
+              <button
+                type="button"
+                onClick={onEdit}
+                disabled={isBusy}
+                className="px-4 py-3 rounded-xl bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-widest hover:bg-blue-100 disabled:opacity-60 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[17px]">
+                  edit
+                </span>
+                Edit
+              </button>
+
+              <button
+                type="button"
+                onClick={onDelete}
+                disabled={isBusy}
+                className="px-4 py-3 rounded-xl bg-red-50 text-red-700 text-xs font-black uppercase tracking-widest hover:bg-red-100 disabled:opacity-60 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[17px]">
+                  delete
+                </span>
+                Delete
+              </button>
+            </div>
           )}
 
-          {(isUpdating || isEditing) && (
+          {isBusy && (
             <span className="text-sm text-slate-400 font-bold">
-              {isEditing ? "Saving..." : "Saving status..."}
+              {isDeleting
+                ? "Deleting..."
+                : isEditing
+                ? "Saving..."
+                : "Saving status..."}
             </span>
           )}
         </div>
